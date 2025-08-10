@@ -1,0 +1,6 @@
+@OTS.MobileAccountingAPI_HostAddress = http://localhost:5069
+
+GET {{OTS.MobileAccountingAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
