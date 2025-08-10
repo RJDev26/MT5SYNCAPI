@@ -47,6 +47,7 @@ namespace OTS.Service
             services.AddScoped<IAccountMasterService, AccountMasterService>();
             services.AddScoped<IVoucherService, VoucherService>();
             services.AddScoped<ILiveDealService, LiveDealService>();
+            services.AddScoped<IAuthService, AuthService>();
 
             return services;
         }
