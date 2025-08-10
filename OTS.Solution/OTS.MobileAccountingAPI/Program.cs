@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using OTS.DOMAIN.Database;
 using OTS.Service;
 using System.Text;
+using MobileAccounting.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +25,7 @@ builder.Services.AddDbContext<AccountingDbContext>(options =>
 // Register your custom services
 builder.Services.AddApplicationDependencies(builder.Configuration);
 
-builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<AccountingDbContext>()
     .AddDefaultTokenProviders();
 

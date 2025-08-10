@@ -6,7 +6,7 @@ using MobileAccounting.Entities;
 
 namespace OTS.DOMAIN.Database
 {
-    public class AccountingDbContext : IdentityDbContext<IdentityUser>
+    public class AccountingDbContext : IdentityDbContext<ApplicationUser>
     {
         public AccountingDbContext(DbContextOptions<AccountingDbContext> options) : base(options) { }
         public DbSet<User> Users { get; set; }

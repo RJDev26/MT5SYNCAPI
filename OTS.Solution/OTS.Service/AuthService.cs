@@ -7,15 +7,16 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using OTS.DOMAIN.MobileAccountingVM;
 using OTS.Service.Interfaces;
+using MobileAccounting.Entities;
 
 namespace OTS.Service
 {
     public class AuthService : IAuthService
     {
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
 
-        public AuthService(UserManager<IdentityUser> userManager, IConfiguration configuration)
+        public AuthService(UserManager<ApplicationUser> userManager, IConfiguration configuration)
         {
             _userManager = userManager;
             _configuration = configuration;
@@ -30,10 +31,16 @@ namespace OTS.Service
             }
 
             var token = GenerateJwtToken(user);
-            return new LoginResponseVM { Token = token };
+            return new LoginResponseVM
+            {
+                Token = token,
+                UserId = user.UserId,
+                Role = user.Role,
+                Name = user.UserName
+            };
         }
 
-        private string GenerateJwtToken(IdentityUser user)
+        private string GenerateJwtToken(ApplicationUser user)
         {
             var keyString = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is not configured.");
             var keyBytes = Encoding.UTF8.GetBytes(keyString);
@@ -47,7 +54,9 @@ namespace OTS.Service
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.UserName ?? string.Empty),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim("userId", user.UserId.ToString()),
+                new Claim(ClaimTypes.Role, user.Role ?? string.Empty)
             };
 
             var token = new JwtSecurityToken(
