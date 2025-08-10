@@ -1,6 +1,7 @@
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Collections.Generic;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
@@ -22,21 +23,27 @@ namespace OTS.Service
             _configuration = configuration;
         }
 
-        public async Task<LoginResponseVM?> LoginAsync(LoginRequestVM request)
+        public async Task<LoginResponseVM> LoginAsync(LoginRequestVM request)
         {
             var user = await _userManager.FindByNameAsync(request.Username);
             if (user == null || !await _userManager.CheckPasswordAsync(user, request.Password))
             {
-                return null;
+                return new LoginResponseVM
+                {
+                    IsAuthSuccessful = false,
+                    ErrorMessage = "Invalid username or password."
+                };
             }
 
             var token = GenerateJwtToken(user);
             return new LoginResponseVM
             {
+                IsAuthSuccessful = true,
                 Token = token,
+                UserName = user.UserName,
                 UserId = user.UserId,
-                Role = user.Role,
-                Name = user.UserName
+                Id = user.Id,
+                Role = user.Role
             };
         }
 

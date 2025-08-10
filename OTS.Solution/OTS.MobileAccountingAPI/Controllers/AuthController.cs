@@ -19,9 +19,9 @@ namespace OTS.MobileAccountingAPI.Controllers
         public async Task<IActionResult> Login([FromBody] LoginRequestVM request)
         {
             var result = await _authService.LoginAsync(request);
-            if (result == null)
+            if (!result.IsAuthSuccessful)
             {
-                return Unauthorized();
+                return BadRequest(result);
             }
 
             return Ok(result);
