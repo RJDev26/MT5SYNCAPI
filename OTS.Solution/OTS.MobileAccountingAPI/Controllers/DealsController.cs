@@ -18,7 +18,7 @@ namespace OTS.MobileAccountingAPI.Controllers
         public async Task<IActionResult> GetLiveDeals([FromQuery] DateOnly date, [FromQuery] DateTime? sinceTime, [FromQuery] string? symbol, [FromQuery] string? action, [FromQuery] int? pageSize, [FromQuery] bool asc = false, CancellationToken ct = default)
         {
             var result = await _service.GetLiveDealsAsync(date, sinceTime, symbol, action, pageSize ?? 500, asc, ct);
-            return Ok(new { rows = result.Rows, maxTime = result.MaxTime, rowCount = result.RowCount });
+            return Ok(new { rows = result.Rows, maxTime = result.MaxTime, rowCount = result.TotalRows });
         }
     }
 }

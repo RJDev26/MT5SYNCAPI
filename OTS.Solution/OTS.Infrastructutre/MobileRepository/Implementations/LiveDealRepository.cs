@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MobileAccounting.Repositories.Interfaces;
@@ -26,17 +27,21 @@ namespace MobileAccounting.Repositories.Implementations
                 new DbParameter("SinceTime", ParameterDirection.Input, sinceTime),
                 new DbParameter("Symbol", ParameterDirection.Input, symbol),
                 new DbParameter("Action", ParameterDirection.Input, action),
-                new DbParameter("PageSize", ParameterDirection.Input, pageSize),
-                new DbParameter("Asc", ParameterDirection.Input, asc)
+                new DbParameter("PageSize", ParameterDirection.Input, pageSize)
             };
 
             var (rows, meta) = await _db.ExecuteMultipleAsync<LiveDealVM, LiveDealMetaVM>("usp_GetLiveDeals", parameters);
+
+            if (!asc)
+            {
+                rows = rows.OrderByDescending(r => r.Time).ToList();
+            }
 
             return new LiveDealResultVM
             {
                 Rows = rows,
                 MaxTime = meta?.MaxTime,
-                RowCount = meta?.RowCount
+                TotalRows = meta?.TotalRows
             };
         }
     }
