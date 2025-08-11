@@ -9,11 +9,13 @@ namespace OTS.MobileAccountingAPI.Controllers
     [Route("api/[controller]")]
     public class DealsController : ControllerBase
     {
-        private readonly ILiveDealService _service;
+        private readonly ILiveDealService _liveDealService;
+        private readonly IOrderSnapshotService _orderSnapshotService;
 
-        public DealsController(ILiveDealService service)
+        public DealsController(ILiveDealService liveDealService, IOrderSnapshotService orderSnapshotService)
         {
-            _service = service;
+            _liveDealService = liveDealService;
+            _orderSnapshotService = orderSnapshotService;
         }
 
         [HttpGet("live")]
@@ -42,8 +44,20 @@ namespace OTS.MobileAccountingAPI.Controllers
                 parsedSinceTime = dt;
             }
 
-            var result = await _service.GetLiveDealsAsync(onDate, parsedSinceTime, symbol, action, pageSize ?? 500, asc, ct);
+            var result = await _liveDealService.GetLiveDealsAsync(onDate, parsedSinceTime, symbol, action, pageSize ?? 500, asc, ct);
             return Ok(new { rows = result.Rows, maxTime = result.MaxTime, rowCount = result.TotalRows });
+        }
+
+        [HttpGet("orders-snapshot")]
+        public async Task<IActionResult> GetOrdersSnapshot([FromQuery(Name = "date")] string date, CancellationToken ct = default)
+        {
+            if (!DateOnly.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var onDate))
+            {
+                return BadRequest("Invalid date format.");
+            }
+
+            var rows = await _orderSnapshotService.GetOrdersSnapshotAsync(onDate, ct);
+            return Ok(rows);
         }
     }
 }

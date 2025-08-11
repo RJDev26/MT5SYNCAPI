@@ -40,6 +40,7 @@ namespace OTS.Service
             services.AddScoped<IVoucherDetailsDeletedRepository, VoucherDetailsDeletedRepository>();
             services.AddScoped<IAuditLogRepository, AuditLogRepository>();
             services.AddScoped<ILiveDealRepository, LiveDealRepository>();
+            services.AddScoped<IOrderSnapshotRepository, OrderSnapshotRepository>();
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -48,6 +49,7 @@ namespace OTS.Service
             services.AddScoped<IVoucherService, VoucherService>();
             services.AddScoped<ILiveDealService, LiveDealService>();
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IOrderSnapshotService, OrderSnapshotService>();
 
             return services;
         }
