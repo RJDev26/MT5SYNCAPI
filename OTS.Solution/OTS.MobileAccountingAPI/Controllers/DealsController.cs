@@ -57,8 +57,8 @@ namespace OTS.MobileAccountingAPI.Controllers
             [FromQuery] int? top,
             CancellationToken ct = default)
         {
-            var rows = await _orderSnapshotService.GetOrdersSnapshotAsync(symbol, orderId, top, ct);
-            return Ok(rows);
+            var result = await _orderSnapshotService.GetOrdersSnapshotAsync(symbol, orderId, top, ct);
+            return Ok(new { rows = result.Rows, maxTime = result.MaxTime, rowCount = result.TotalRows });
         }
 
         [HttpGet("jobbing-deals")]

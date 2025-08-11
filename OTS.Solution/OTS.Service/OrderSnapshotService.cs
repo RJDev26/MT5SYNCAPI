@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MobileAccounting.Repositories.Interfaces;
@@ -17,7 +16,7 @@ namespace OTS.Service
             _repository = repository;
         }
 
-        public Task<List<OrderSnapshotVM>> GetOrdersSnapshotAsync(string? symbol, long? orderId, int? top, CancellationToken ct)
+        public Task<OrderSnapshotResultVM> GetOrdersSnapshotAsync(string? symbol, long? orderId, int? top, CancellationToken ct)
         {
             return _repository.GetOrdersSnapshotAsync(symbol, orderId, top, ct);
         }

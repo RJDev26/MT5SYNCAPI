@@ -18,7 +18,7 @@ namespace MobileAccounting.Repositories.Implementations
             _db = db;
         }
 
-        public Task<List<OrderSnapshotVM>> GetOrdersSnapshotAsync(string? symbol, long? orderId, int? top, CancellationToken ct)
+        public async Task<OrderSnapshotResultVM> GetOrdersSnapshotAsync(string? symbol, long? orderId, int? top, CancellationToken ct)
         {
             var parameters = new List<DbParameter>
             {
@@ -27,7 +27,15 @@ namespace MobileAccounting.Repositories.Implementations
                 new DbParameter("Top", ParameterDirection.Input, top ?? (object)DBNull.Value)
             };
 
-            return _db.ExecuteListAsync<OrderSnapshotVM>("usp_GetOrdersSnapshot", parameters);
+            var (rows, meta) = await _db.ExecuteMultipleAsync<OrderSnapshotVM, OrderSnapshotMetaVM>(
+                "usp_GetOrdersSnapshot", parameters);
+
+            return new OrderSnapshotResultVM
+            {
+                Rows = rows,
+                MaxTime = meta?.MaxTime,
+                TotalRows = meta?.TotalRows
+            };
         }
     }
 }
