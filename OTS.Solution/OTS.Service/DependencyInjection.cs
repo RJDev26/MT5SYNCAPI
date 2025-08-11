@@ -41,6 +41,7 @@ namespace OTS.Service
             services.AddScoped<IAuditLogRepository, AuditLogRepository>();
             services.AddScoped<ILiveDealRepository, LiveDealRepository>();
             services.AddScoped<IOrderSnapshotRepository, OrderSnapshotRepository>();
+            services.AddScoped<IJobbingDealRepository, JobbingDealRepository>();
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -50,6 +51,7 @@ namespace OTS.Service
             services.AddScoped<ILiveDealService, LiveDealService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IOrderSnapshotService, OrderSnapshotService>();
+            services.AddScoped<IJobbingDealService, JobbingDealService>();
 
             return services;
         }
