@@ -17,9 +17,9 @@ namespace OTS.Service
             _repository = repository;
         }
 
-        public Task<List<OrderSnapshotVM>> GetOrdersSnapshotAsync(DateOnly onDate, CancellationToken ct)
+        public Task<List<OrderSnapshotVM>> GetOrdersSnapshotAsync(string? symbol, long? orderId, int? top, CancellationToken ct)
         {
-            return _repository.GetOrdersSnapshotAsync(onDate, ct);
+            return _repository.GetOrdersSnapshotAsync(symbol, orderId, top, ct);
         }
     }
 }

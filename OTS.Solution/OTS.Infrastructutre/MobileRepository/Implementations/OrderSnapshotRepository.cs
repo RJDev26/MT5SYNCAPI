@@ -18,11 +18,13 @@ namespace MobileAccounting.Repositories.Implementations
             _db = db;
         }
 
-        public Task<List<OrderSnapshotVM>> GetOrdersSnapshotAsync(DateOnly onDate, CancellationToken ct)
+        public Task<List<OrderSnapshotVM>> GetOrdersSnapshotAsync(string? symbol, long? orderId, int? top, CancellationToken ct)
         {
             var parameters = new List<DbParameter>
             {
-                new DbParameter("OnDate", ParameterDirection.Input, onDate.ToDateTime(TimeOnly.MinValue))
+                new DbParameter("Symbol", ParameterDirection.Input, symbol ?? (object)DBNull.Value),
+                new DbParameter("OrderId", ParameterDirection.Input, orderId ?? (object)DBNull.Value),
+                new DbParameter("Top", ParameterDirection.Input, top ?? (object)DBNull.Value)
             };
 
             return _db.ExecuteListAsync<OrderSnapshotVM>("usp_GetOrdersSnapshot", parameters);

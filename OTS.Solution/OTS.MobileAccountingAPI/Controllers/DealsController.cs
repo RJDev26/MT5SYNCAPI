@@ -49,14 +49,13 @@ namespace OTS.MobileAccountingAPI.Controllers
         }
 
         [HttpGet("orders-snapshot")]
-        public async Task<IActionResult> GetOrdersSnapshot([FromQuery(Name = "date")] string date, CancellationToken ct = default)
+        public async Task<IActionResult> GetOrdersSnapshot(
+            [FromQuery] string? symbol,
+            [FromQuery] long? orderId,
+            [FromQuery] int? top,
+            CancellationToken ct = default)
         {
-            if (!DateOnly.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var onDate))
-            {
-                return BadRequest("Invalid date format.");
-            }
-
-            var rows = await _orderSnapshotService.GetOrdersSnapshotAsync(onDate, ct);
+            var rows = await _orderSnapshotService.GetOrdersSnapshotAsync(symbol, orderId, top, ct);
             return Ok(rows);
         }
     }

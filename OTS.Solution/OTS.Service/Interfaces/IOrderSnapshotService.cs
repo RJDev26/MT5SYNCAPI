@@ -8,6 +8,6 @@ namespace OTS.Service.Interfaces
 {
     public interface IOrderSnapshotService
     {
-        Task<List<OrderSnapshotVM>> GetOrdersSnapshotAsync(DateOnly onDate, CancellationToken ct);
+        Task<List<OrderSnapshotVM>> GetOrdersSnapshotAsync(string? symbol, long? orderId, int? top, CancellationToken ct);
     }
 }
