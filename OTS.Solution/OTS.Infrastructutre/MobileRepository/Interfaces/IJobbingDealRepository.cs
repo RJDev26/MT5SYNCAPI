@@ -8,6 +8,6 @@ namespace MobileAccounting.Repositories.Interfaces
 {
     public interface IJobbingDealRepository
     {
-        Task<List<JobbingDealVM>> GetJobbingDealsAsync(DateTime? fromTime, DateTime? toTime, int intervalMinutes, long? login, string? symbol, CancellationToken ct);
+        Task<JobbingDealResultVM> GetJobbingDealsAsync(DateTime? fromTime, DateTime? toTime, int intervalMinutes, long? login, string? symbol, CancellationToken ct);
     }
 }

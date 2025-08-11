@@ -17,7 +17,7 @@ namespace OTS.Service
             _repository = repository;
         }
 
-        public Task<List<JobbingDealVM>> GetJobbingDealsAsync(DateTime? fromTime, DateTime? toTime, int? intervalMinutes, long? login, string? symbol, CancellationToken ct)
+        public Task<JobbingDealResultVM> GetJobbingDealsAsync(DateTime? fromTime, DateTime? toTime, int? intervalMinutes, long? login, string? symbol, CancellationToken ct)
         {
             return _repository.GetJobbingDealsAsync(fromTime, toTime, intervalMinutes ?? 5, login, symbol, ct);
         }

@@ -18,7 +18,7 @@ namespace MobileAccounting.Repositories.Implementations
             _db = db;
         }
 
-        public Task<List<JobbingDealVM>> GetJobbingDealsAsync(DateTime? fromTime, DateTime? toTime, int intervalMinutes, long? login, string? symbol, CancellationToken ct)
+        public async Task<JobbingDealResultVM> GetJobbingDealsAsync(DateTime? fromTime, DateTime? toTime, int intervalMinutes, long? login, string? symbol, CancellationToken ct)
         {
             var parameters = new List<DbParameter>
             {
@@ -29,7 +29,15 @@ namespace MobileAccounting.Repositories.Implementations
                 new DbParameter("Symbol", ParameterDirection.Input, symbol)
             };
 
-            return _db.ExecuteListAsync<JobbingDealVM>("usp_GetJobbingPairs_ForDto", parameters);
+            var (rows, meta) = await _db.ExecuteMultipleAsync<JobbingDealVM, JobbingDealMetaVM>(
+                "usp_GetJobbingPairs_ForDto", parameters);
+
+            return new JobbingDealResultVM
+            {
+                Rows = rows,
+                MaxTime = meta?.MaxTime,
+                RowsCount = meta?.RowsCount
+            };
         }
     }
 }

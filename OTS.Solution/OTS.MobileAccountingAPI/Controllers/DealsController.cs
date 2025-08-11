@@ -90,8 +90,8 @@ namespace OTS.MobileAccountingAPI.Controllers
                 parsedTo = tt;
             }
 
-            var rows = await _jobbingDealService.GetJobbingDealsAsync(parsedFrom, parsedTo, intervalMinutes, login, symbol, ct);
-            return Ok(rows);
+            var result = await _jobbingDealService.GetJobbingDealsAsync(parsedFrom, parsedTo, intervalMinutes, login, symbol, ct);
+            return Ok(new { rows = result.Rows, maxTime = result.MaxTime, rowCount = result.RowsCount });
         }
     }
 }

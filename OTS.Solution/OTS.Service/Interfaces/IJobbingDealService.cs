@@ -8,6 +8,6 @@ namespace OTS.Service.Interfaces
 {
     public interface IJobbingDealService
     {
-        Task<List<JobbingDealVM>> GetJobbingDealsAsync(DateTime? fromTime, DateTime? toTime, int? intervalMinutes, long? login, string? symbol, CancellationToken ct);
+        Task<JobbingDealResultVM> GetJobbingDealsAsync(DateTime? fromTime, DateTime? toTime, int? intervalMinutes, long? login, string? symbol, CancellationToken ct);
     }
 }
