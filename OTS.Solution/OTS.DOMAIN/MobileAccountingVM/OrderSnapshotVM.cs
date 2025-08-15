@@ -13,5 +13,6 @@ namespace OTS.DOMAIN.MobileAccountingVM
         public double Volume { get; set; }
         public int OrderType { get; set; }
         public string OrderTypeName { get; set; }
+        public string LastIP { get; set; }
     }
 }

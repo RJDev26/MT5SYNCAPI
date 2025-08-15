@@ -27,5 +27,7 @@ namespace OTS.DOMAIN.MobileAccountingVM
         public string DateString { get; set; }
         public string BuyTimeString { get; set; }
         public string SellTimeString { get; set; }
+        public string BuyIP { get; set; }
+        public string SellIP { get; set; }
     }
 }

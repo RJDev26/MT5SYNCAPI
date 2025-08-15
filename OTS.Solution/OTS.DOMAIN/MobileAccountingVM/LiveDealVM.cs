@@ -16,6 +16,7 @@ namespace OTS.DOMAIN.MobileAccountingVM
         public double Volumeext { get; set; }
         public double Profit { get; set; }
         public double Commission { get; set; }
+        public string LastIP { get; set; }
         public string? Comment { get; set; }
     }
 }
