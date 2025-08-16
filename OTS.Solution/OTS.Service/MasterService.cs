@@ -22,10 +22,10 @@ namespace OTS.Service
         public Task<MasterResponseVM> DeleteAsync(string tableName, int id, CancellationToken ct)
             => _repository.DeleteAsync(tableName, id, ct);
 
-        public Task<IEnumerable<MasterListVM>> GetMasterListAsync(string tableName, CancellationToken ct)
+        public Task<List<MasterListVM>> GetMasterListAsync(string tableName, CancellationToken ct)
             => _repository.GetMasterListAsync(tableName, ct);
 
-        public Task<IEnumerable<LoginVM>> GetLoginsAsync(CancellationToken ct)
+        public Task<List<LoginVM>> GetLoginsAsync(CancellationToken ct)
             => _repository.GetLoginsAsync(ct);
     }
 }

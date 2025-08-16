@@ -44,7 +44,7 @@ namespace MobileAccounting.Repositories.Implementations
             return result.FirstOrDefault() ?? new MasterResponseVM();
         }
 
-        public Task<IEnumerable<MasterListVM>> GetMasterListAsync(string tableName, CancellationToken ct)
+        public Task<List<MasterListVM>> GetMasterListAsync(string tableName, CancellationToken ct)
         {
             var parameters = new List<DbParameter>
             {
@@ -54,7 +54,7 @@ namespace MobileAccounting.Repositories.Implementations
             return _db.ExecuteListAsync<MasterListVM>("usp_Get_MasterList", parameters);
         }
 
-        public Task<IEnumerable<LoginVM>> GetLoginsAsync(CancellationToken ct)
+        public Task<List<LoginVM>> GetLoginsAsync(CancellationToken ct)
             => _db.ExecuteListAsync<LoginVM>("usp_Get_Logins", null);
     }
 }

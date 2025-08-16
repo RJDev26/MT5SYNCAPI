@@ -9,7 +9,7 @@ namespace OTS.Service.Interfaces
     {
         Task<MasterResponseVM> SaveOrUpdateAsync(MasterRequestVM request, CancellationToken ct);
         Task<MasterResponseVM> DeleteAsync(string tableName, int id, CancellationToken ct);
-        Task<IEnumerable<MasterListVM>> GetMasterListAsync(string tableName, CancellationToken ct);
-        Task<IEnumerable<LoginVM>> GetLoginsAsync(CancellationToken ct);
+        Task<List<MasterListVM>> GetMasterListAsync(string tableName, CancellationToken ct);
+        Task<List<LoginVM>> GetLoginsAsync(CancellationToken ct);
     }
 }
