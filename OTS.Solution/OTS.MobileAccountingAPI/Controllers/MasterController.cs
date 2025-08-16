@@ -36,5 +36,26 @@ namespace OTS.MobileAccountingAPI.Controllers
 
             return BadRequest(response);
         }
+
+        [HttpGet("brokers")]
+        public async Task<IActionResult> GetBrokers(CancellationToken ct = default)
+        {
+            var rows = await _masterService.GetMasterListAsync("Broker", ct);
+            return Ok(rows);
+        }
+
+        [HttpGet("managers")]
+        public async Task<IActionResult> GetManagers(CancellationToken ct = default)
+        {
+            var rows = await _masterService.GetMasterListAsync("Manager", ct);
+            return Ok(rows);
+        }
+
+        [HttpGet("logins")]
+        public async Task<IActionResult> GetLogins(CancellationToken ct = default)
+        {
+            var rows = await _masterService.GetLoginsAsync(ct);
+            return Ok(rows);
+        }
     }
 }
