@@ -27,5 +27,14 @@ namespace OTS.Service
 
         public Task<List<LoginVM>> GetLoginsAsync(CancellationToken ct)
             => _repository.GetLoginsAsync(ct);
+
+        public Task<List<LoginClientInfoVM>> GetMt5LoginsWithClientInfoAsync(
+            long? login,
+            int? managerId,
+            int? brokerId,
+            int? exId,
+            bool onlyWithClientRecord,
+            CancellationToken ct)
+            => _repository.GetMt5LoginsWithClientInfoAsync(login, managerId, brokerId, exId, onlyWithClientRecord, ct);
     }
 }

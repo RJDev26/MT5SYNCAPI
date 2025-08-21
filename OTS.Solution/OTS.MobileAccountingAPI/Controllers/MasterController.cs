@@ -57,5 +57,18 @@ namespace OTS.MobileAccountingAPI.Controllers
             var rows = await _masterService.GetLoginsAsync(ct);
             return Ok(rows);
         }
+
+        [HttpGet("logins-with-client-info")]
+        public async Task<IActionResult> GetLoginsWithClientInfo(
+            [FromQuery] long? login,
+            [FromQuery] int? managerId,
+            [FromQuery] int? brokerId,
+            [FromQuery] int? exId,
+            [FromQuery] bool onlyWithClientRecord = false,
+            CancellationToken ct = default)
+        {
+            var rows = await _masterService.GetMt5LoginsWithClientInfoAsync(login, managerId, brokerId, exId, onlyWithClientRecord, ct);
+            return Ok(rows);
+        }
     }
 }

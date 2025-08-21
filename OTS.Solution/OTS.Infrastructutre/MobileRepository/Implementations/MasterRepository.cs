@@ -56,5 +56,25 @@ namespace MobileAccounting.Repositories.Implementations
 
         public Task<List<LoginVM>> GetLoginsAsync(CancellationToken ct)
             => _db.ExecuteListAsync<LoginVM>("usp_Get_Logins", null);
+
+        public Task<List<LoginClientInfoVM>> GetMt5LoginsWithClientInfoAsync(
+            long? login,
+            int? managerId,
+            int? brokerId,
+            int? exId,
+            bool onlyWithClientRecord,
+            CancellationToken ct)
+        {
+            var parameters = new List<DbParameter>
+            {
+                new DbParameter("Login", ParameterDirection.Input, login),
+                new DbParameter("ManagerId", ParameterDirection.Input, managerId),
+                new DbParameter("BrokerId", ParameterDirection.Input, brokerId),
+                new DbParameter("ExId", ParameterDirection.Input, exId),
+                new DbParameter("OnlyWithClientRecord", ParameterDirection.Input, onlyWithClientRecord)
+            };
+
+            return _db.ExecuteListAsync<LoginClientInfoVM>("usp_GetMt5LoginsWithClientInfo", parameters);
+        }
     }
 }
