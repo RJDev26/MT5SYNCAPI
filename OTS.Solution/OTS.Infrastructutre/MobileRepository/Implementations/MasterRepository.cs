@@ -76,5 +76,26 @@ namespace MobileAccounting.Repositories.Implementations
 
             return _db.ExecuteListAsync<LoginClientInfoVM>("usp_GetMt5LoginsWithClientInfo", parameters);
         }
+
+        public async Task<MasterResponseVM> ManageClientMasterAsync(ClientMasterRequestVM request, CancellationToken ct)
+        {
+            var parameters = new List<DbParameter>
+            {
+                new DbParameter("Action", ParameterDirection.Input, request.Action),
+                new DbParameter("Id", ParameterDirection.Input, request.Id),
+                new DbParameter("Login", ParameterDirection.Input, request.Login),
+                new DbParameter("ManagerId", ParameterDirection.Input, request.ManagerId),
+                new DbParameter("BrokerId", ParameterDirection.Input, request.BrokerId),
+                new DbParameter("ExId", ParameterDirection.Input, request.ExId),
+                new DbParameter("BrokShare", ParameterDirection.Input, request.BrokShare),
+                new DbParameter("ManagerShare", ParameterDirection.Input, request.ManagerShare),
+                new DbParameter("Currency", ParameterDirection.Input, request.Currency),
+                new DbParameter("Commission", ParameterDirection.Input, request.Commission),
+                new DbParameter("CreatedBy", ParameterDirection.Input, request.CreatedBy)
+            };
+
+            var result = await _db.ExecuteListAsync<MasterResponseVM>("usp_ManageClientMaster", parameters);
+            return result.FirstOrDefault() ?? new MasterResponseVM();
+        }
     }
 }

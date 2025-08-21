@@ -36,5 +36,8 @@ namespace OTS.Service
             bool onlyWithClientRecord,
             CancellationToken ct)
             => _repository.GetMt5LoginsWithClientInfoAsync(login, managerId, brokerId, exId, onlyWithClientRecord, ct);
+
+        public Task<MasterResponseVM> ManageClientMasterAsync(ClientMasterRequestVM request, CancellationToken ct)
+            => _repository.ManageClientMasterAsync(request, ct);
     }
 }

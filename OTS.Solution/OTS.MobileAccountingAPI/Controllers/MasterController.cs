@@ -70,5 +70,26 @@ namespace OTS.MobileAccountingAPI.Controllers
             var rows = await _masterService.GetMt5LoginsWithClientInfoAsync(login, managerId, brokerId, exId, onlyWithClientRecord, ct);
             return Ok(rows);
         }
+
+        [HttpPost("client-master")]
+        public async Task<IActionResult> ManageClientMaster([FromBody] ClientMasterRequestVM request, CancellationToken ct = default)
+        {
+            var response = await _masterService.ManageClientMasterAsync(request, ct);
+            if (response.Success == 1)
+                return Ok(response);
+
+            return BadRequest(response);
+        }
+
+        [HttpDelete("client-master")]
+        public async Task<IActionResult> DeleteClientMaster([FromQuery] int id, CancellationToken ct = default)
+        {
+            var request = new ClientMasterRequestVM { Action = "DELETE", Id = id };
+            var response = await _masterService.ManageClientMasterAsync(request, ct);
+            if (response.Success == 1)
+                return Ok(response);
+
+            return BadRequest(response);
+        }
     }
 }

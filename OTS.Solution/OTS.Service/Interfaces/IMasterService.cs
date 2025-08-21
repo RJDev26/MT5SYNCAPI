@@ -18,5 +18,6 @@ namespace OTS.Service.Interfaces
             int? exId,
             bool onlyWithClientRecord,
             CancellationToken ct);
+        Task<MasterResponseVM> ManageClientMasterAsync(ClientMasterRequestVM request, CancellationToken ct);
     }
 }
