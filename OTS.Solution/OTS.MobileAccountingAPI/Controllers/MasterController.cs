@@ -58,6 +58,13 @@ namespace OTS.MobileAccountingAPI.Controllers
             return Ok(rows);
         }
 
+        [HttpGet("currencies")]
+        public async Task<IActionResult> GetCurrencies(CancellationToken ct = default)
+        {
+            var rows = await _masterService.GetMasterListAsync("Currency", ct);
+            return Ok(rows);
+        }
+
         [HttpGet("logins")]
         public async Task<IActionResult> GetLogins(CancellationToken ct = default)
         {
