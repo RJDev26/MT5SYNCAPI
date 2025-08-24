@@ -25,7 +25,7 @@ namespace OTS.Service
 
         public async Task<LoginResponseVM> LoginAsync(LoginRequestVM request)
         {
-            var user = await _userManager.FindByNameAsync(request.Username);
+            var user = await _userManager.FindByNameAsync(request.Name);
             if (user == null || !await _userManager.CheckPasswordAsync(user, request.Password))
             {
                 return new LoginResponseVM

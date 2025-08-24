@@ -23,7 +23,7 @@ namespace MobileAccounting.Repositories.Implementations
             var parameters = new List<DbParameter>
             {
                 new DbParameter("Symbol", ParameterDirection.Input, symbol ?? (object)DBNull.Value),
-                new DbParameter("OrderId", ParameterDirection.Input, orderId ?? (object)DBNull.Value),
+               // new DbParameter("OrderId", ParameterDirection.Input, orderId ?? (object)DBNull.Value),
                 new DbParameter("Top", ParameterDirection.Input, top ?? (object)DBNull.Value)
             };
 
