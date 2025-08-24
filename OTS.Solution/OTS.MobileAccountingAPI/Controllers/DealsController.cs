@@ -12,12 +12,18 @@ namespace OTS.MobileAccountingAPI.Controllers
         private readonly ILiveDealService _liveDealService;
         private readonly IOrderSnapshotService _orderSnapshotService;
         private readonly IJobbingDealService _jobbingDealService;
+        private readonly IStandingService _standingService;
 
-        public DealsController(ILiveDealService liveDealService, IOrderSnapshotService orderSnapshotService, IJobbingDealService jobbingDealService)
+        public DealsController(
+            ILiveDealService liveDealService,
+            IOrderSnapshotService orderSnapshotService,
+            IJobbingDealService jobbingDealService,
+            IStandingService standingService)
         {
             _liveDealService = liveDealService;
             _orderSnapshotService = orderSnapshotService;
             _jobbingDealService = jobbingDealService;
+            _standingService = standingService;
         }
 
         [HttpGet("live")]
@@ -92,6 +98,22 @@ namespace OTS.MobileAccountingAPI.Controllers
 
             var result = await _jobbingDealService.GetJobbingDealsAsync(parsedFrom, parsedTo, intervalMinutes, login, symbol, ct);
             return Ok(new { rows = result.Rows, maxTime = result.MaxTime, rowCount = result.RowsCount });
+        }
+
+        [HttpGet("standing")]
+        public async Task<IActionResult> GetStanding(
+            [FromQuery(Name = "date")] string date,
+            [FromQuery] long? login,
+            [FromQuery] string? symbol,
+            CancellationToken ct = default)
+        {
+            if (!DateOnly.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var onDate))
+            {
+                return BadRequest("Invalid date format.");
+            }
+
+            var result = await _standingService.GetStandingAsync(onDate, login, symbol, ct);
+            return Ok(new { rows = result.Rows, rowCount = result.RowCount });
         }
     }
 }
