@@ -1,11 +1,12 @@
 ﻿
-
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using MobileAccounting.Entities;
 
 namespace OTS.DOMAIN.Database
 {
-    public class AccountingDbContext : DbContext
+    public class AccountingDbContext : IdentityDbContext<ApplicationUser>
     {
         public AccountingDbContext(DbContextOptions<AccountingDbContext> options) : base(options) { }
         public DbSet<User> Users { get; set; }

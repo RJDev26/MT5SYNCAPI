@@ -39,12 +39,21 @@ namespace OTS.Service
             services.AddScoped<IVoucherDetailRepository, VoucherDetailRepository>();
             services.AddScoped<IVoucherDetailsDeletedRepository, VoucherDetailsDeletedRepository>();
             services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+            services.AddScoped<ILiveDealRepository, LiveDealRepository>();
+            services.AddScoped<IOrderSnapshotRepository, OrderSnapshotRepository>();
+            services.AddScoped<IJobbingDealRepository, JobbingDealRepository>();
+            services.AddScoped<IMasterRepository, MasterRepository>();
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             // Register services
             services.AddScoped<IAccountMasterService, AccountMasterService>();
             services.AddScoped<IVoucherService, VoucherService>();
+            services.AddScoped<ILiveDealService, LiveDealService>();
+            services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IOrderSnapshotService, OrderSnapshotService>();
+            services.AddScoped<IJobbingDealService, JobbingDealService>();
+            services.AddScoped<IMasterService, MasterService>();
 
             return services;
         }

@@ -1,9 +1,22 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using OTS.DOMAIN.Database;
 using OTS.Service;
+using System.Text;
+using MobileAccounting.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Ensure the JWT key is at least 256 bits (32 bytes)
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
+{
+    throw new InvalidOperationException("Jwt:Key must be at least 32 bytes (256 bits) when using HS256.");
+}
+var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
 
 // Register DbContext
 builder.Services.AddDbContext<AccountingDbContext>(options =>
@@ -11,6 +24,28 @@ builder.Services.AddDbContext<AccountingDbContext>(options =>
 
 // Register your custom services
 builder.Services.AddApplicationDependencies(builder.Configuration);
+
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+    .AddEntityFrameworkStores<AccountingDbContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = signingKey
+    };
+});
 
 // Register CORS (Allow Any Origin/Method/Header)
 builder.Services.AddCors(options =>
@@ -38,6 +73,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
