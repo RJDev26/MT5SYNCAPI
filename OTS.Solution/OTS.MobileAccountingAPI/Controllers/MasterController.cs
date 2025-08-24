@@ -88,6 +88,7 @@ namespace OTS.MobileAccountingAPI.Controllers
         [HttpPost("client-master")]
         public async Task<IActionResult> ManageClientMaster([FromBody] ClientMasterRequestVM request, CancellationToken ct = default)
         {
+            if (request.CreatedBy == null) { request.CreatedBy = 1; }
             var response = await _masterService.ManageClientMasterAsync(request, ct);
             if (response.Success == 1)
                 return Ok(response);

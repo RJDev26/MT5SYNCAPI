@@ -89,7 +89,7 @@ namespace MobileAccounting.Repositories.Implementations
                 new DbParameter("ExId", ParameterDirection.Input, request.ExId),
                 new DbParameter("BrokShare", ParameterDirection.Input, request.BrokShare),
                 new DbParameter("ManagerShare", ParameterDirection.Input, request.ManagerShare),
-                new DbParameter("Currency", ParameterDirection.Input, request.Currency),
+                new DbParameter("Currency", ParameterDirection.Input, request.CurrencyId),
                 new DbParameter("Commission", ParameterDirection.Input, request.Commission),
                 new DbParameter("CreatedBy", ParameterDirection.Input, request.CreatedBy)
             };
