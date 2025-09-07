@@ -13,17 +13,20 @@ namespace OTS.MobileAccountingAPI.Controllers
         private readonly IOrderSnapshotService _orderSnapshotService;
         private readonly IJobbingDealService _jobbingDealService;
         private readonly IStandingService _standingService;
+        private readonly ILiveSummaryService _liveSummaryService;
 
         public DealsController(
             ILiveDealService liveDealService,
             IOrderSnapshotService orderSnapshotService,
             IJobbingDealService jobbingDealService,
-            IStandingService standingService)
+            IStandingService standingService,
+            ILiveSummaryService liveSummaryService)
         {
             _liveDealService = liveDealService;
             _orderSnapshotService = orderSnapshotService;
             _jobbingDealService = jobbingDealService;
             _standingService = standingService;
+            _liveSummaryService = liveSummaryService;
         }
 
         [HttpGet("live")]
@@ -113,6 +116,28 @@ namespace OTS.MobileAccountingAPI.Controllers
             }
 
             var result = await _standingService.GetStandingAsync(onDate, login, symbol, ct);
+            return Ok(new { rows = result.Rows, rowCount = result.RowCount });
+        }
+
+        [HttpGet("live-summary")]
+        public async Task<IActionResult> GetLiveSummary(
+            [FromQuery(Name = "from")] string from,
+            [FromQuery(Name = "to")] string to,
+            [FromQuery] long? managerId,
+            [FromQuery] string? exchange,
+            CancellationToken ct = default)
+        {
+            if (!DateTime.TryParse(from, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var fromDate))
+            {
+                return BadRequest("Invalid from date format.");
+            }
+
+            if (!DateTime.TryParse(to, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var toDate))
+            {
+                return BadRequest("Invalid to date format.");
+            }
+
+            var result = await _liveSummaryService.GetLiveSummaryAsync(fromDate, toDate, managerId, exchange, ct);
             return Ok(new { rows = result.Rows, rowCount = result.RowCount });
         }
     }
