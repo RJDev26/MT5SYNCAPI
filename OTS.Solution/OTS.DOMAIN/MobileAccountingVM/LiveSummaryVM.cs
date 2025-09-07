@@ -9,10 +9,21 @@ namespace OTS.DOMAIN.MobileAccountingVM
         public decimal OpenQty { get; set; }
         public decimal OpenRate { get; set; }
         public decimal OpenAmt { get; set; }
-        public decimal BuyQty { get; set; }
-        public decimal BuyAmt { get; set; }
-        public decimal SellQty { get; set; }
-        public decimal SellAmt { get; set; }
+
+        // Stored procedure returns abbreviated column names (BQty, BAmt, etc.).
+        // Map them here while preserving the expected camel‑cased JSON names.
+        [System.Text.Json.Serialization.JsonPropertyName("buyQty")]
+        public decimal BQty { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("buyAmt")]
+        public decimal BAmt { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("sellQty")]
+        public decimal SQty { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("sellAmt")]
+        public decimal SAmt { get; set; }
+
         public decimal Commission { get; set; }
         public decimal CloseQty { get; set; }
         public decimal CloseRate { get; set; }
