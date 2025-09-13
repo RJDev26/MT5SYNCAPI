@@ -14,19 +14,22 @@ namespace OTS.MobileAccountingAPI.Controllers
         private readonly IJobbingDealService _jobbingDealService;
         private readonly IStandingService _standingService;
         private readonly ILiveSummaryService _liveSummaryService;
+        private readonly IDealHistoryService _dealHistoryService;
 
         public DealsController(
             ILiveDealService liveDealService,
             IOrderSnapshotService orderSnapshotService,
             IJobbingDealService jobbingDealService,
             IStandingService standingService,
-            ILiveSummaryService liveSummaryService)
+            ILiveSummaryService liveSummaryService,
+            IDealHistoryService dealHistoryService)
         {
             _liveDealService = liveDealService;
             _orderSnapshotService = orderSnapshotService;
             _jobbingDealService = jobbingDealService;
             _standingService = standingService;
             _liveSummaryService = liveSummaryService;
+            _dealHistoryService = dealHistoryService;
         }
 
         [HttpGet("live")]
@@ -138,6 +141,27 @@ namespace OTS.MobileAccountingAPI.Controllers
             }
 
             var result = await _liveSummaryService.GetLiveSummaryAsync(fromDate, toDate, managerId, exchange, ct);
+            return Ok(new { rows = result.Rows, rowCount = result.RowCount });
+        }
+
+        [HttpGet("deal-history")]
+        public async Task<IActionResult> GetDealHistory(
+            [FromQuery(Name = "from")] string from,
+            [FromQuery(Name = "to")] string to,
+            [FromQuery] long? managerId,
+            CancellationToken ct = default)
+        {
+            if (!DateTime.TryParse(from, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var fromDate))
+            {
+                return BadRequest("Invalid from date format.");
+            }
+
+            if (!DateTime.TryParse(to, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var toDate))
+            {
+                return BadRequest("Invalid to date format.");
+            }
+
+            var result = await _dealHistoryService.GetDealHistoryAsync(fromDate, toDate, managerId, ct);
             return Ok(new { rows = result.Rows, rowCount = result.RowCount });
         }
     }
