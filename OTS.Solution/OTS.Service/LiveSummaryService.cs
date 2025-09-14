@@ -16,9 +16,9 @@ namespace OTS.Service
             _repository = repository;
         }
 
-        public Task<LiveSummaryResultVM> GetLiveSummaryAsync(DateTime fromDate, DateTime toDate, long? managerId, string? exchange, CancellationToken ct)
+        public Task<LiveSummaryResultVM> GetLiveSummaryAsync(DateTime fromDate, DateTime toDate, long? managerId, string? exchange, string? option, CancellationToken ct)
         {
-            return _repository.GetLiveSummaryAsync(fromDate, toDate, managerId, exchange, ct);
+            return _repository.GetLiveSummaryAsync(fromDate, toDate, managerId, exchange, option, ct);
         }
     }
 }

@@ -7,6 +7,6 @@ namespace MobileAccounting.Repositories.Interfaces
 {
     public interface ILiveSummaryRepository
     {
-        Task<LiveSummaryResultVM> GetLiveSummaryAsync(DateTime fromDate, DateTime toDate, long? managerId, string? exchange, CancellationToken ct);
+        Task<LiveSummaryResultVM> GetLiveSummaryAsync(DateTime fromDate, DateTime toDate, long? managerId, string? exchange, string? option, CancellationToken ct);
     }
 }

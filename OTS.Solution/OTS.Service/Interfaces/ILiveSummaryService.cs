@@ -7,6 +7,6 @@ namespace OTS.Service.Interfaces
 {
     public interface ILiveSummaryService
     {
-        Task<LiveSummaryResultVM> GetLiveSummaryAsync(DateTime fromDate, DateTime toDate, long? managerId, string? exchange, CancellationToken ct);
+        Task<LiveSummaryResultVM> GetLiveSummaryAsync(DateTime fromDate, DateTime toDate, long? managerId, string? exchange, string? option, CancellationToken ct);
     }
 }
