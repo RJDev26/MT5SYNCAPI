@@ -25,7 +25,7 @@ namespace MobileAccounting.Repositories.Implementations
                 new DbParameter("OnDate", ParameterDirection.Input, onDate.ToDateTime(TimeOnly.MinValue)),
                 new DbParameter("Login", ParameterDirection.Input, login),
                 new DbParameter("Symbol", ParameterDirection.Input, symbol),
-                new DbParameter("Option", ParameterDirection.Input, option)
+                
             };
 
             var rows = await _db.ExecuteListAsync<StandingVM>("usp_GetStandingByDate", parameters);

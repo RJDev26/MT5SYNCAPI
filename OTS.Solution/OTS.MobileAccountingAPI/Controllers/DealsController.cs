@@ -108,11 +108,11 @@ namespace OTS.MobileAccountingAPI.Controllers
 
         [HttpGet("standing")]
         public async Task<IActionResult> GetStanding(
-            [FromQuery(Name = "date")] string date,
-            [FromQuery] long? login,
-            [FromQuery] string? symbol,
-            [FromQuery] string? option,
-            CancellationToken ct = default)
+    [FromQuery(Name = "date")] string date,
+    [FromQuery] long? login,
+    [FromQuery] string? symbol,
+    [FromQuery] string? option,
+    CancellationToken ct = default)
         {
             if (!DateOnly.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var onDate))
             {
@@ -120,6 +120,22 @@ namespace OTS.MobileAccountingAPI.Controllers
             }
 
             var result = await _standingService.GetStandingAsync(onDate, login, symbol, option, ct);
+            if (option == "summary")
+            {
+                var summary = result.Rows
+        .GroupBy(s => s.Symbol)
+        .Select(g => new
+        {
+            Symbol = g.Key,
+            NetQty = g.Sum(x => x.NetQty),
+            BrokerShare = g.Sum(x => x.BrokerShare),
+            ManagerShare = g.Sum(x => x.ManagerShare)
+        })
+        .Where(x => x.NetQty != 0)
+        .ToList();
+                return Ok(new { rows = summary, rowCount = result.RowCount });
+
+            }
             return Ok(new { rows = result.Rows, rowCount = result.RowCount });
         }
 
