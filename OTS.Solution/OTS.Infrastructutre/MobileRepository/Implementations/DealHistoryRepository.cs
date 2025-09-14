@@ -18,13 +18,14 @@ namespace MobileAccounting.Repositories.Implementations
             _db = db;
         }
 
-        public async Task<DealHistoryResultVM> GetDealHistoryAsync(DateTime fromDate, DateTime toDate, long? managerId, CancellationToken ct)
+        public async Task<DealHistoryResultVM> GetDealHistoryAsync(DateTime fromDate, DateTime toDate, long? managerId, long? login, CancellationToken ct)
         {
             var parameters = new List<DbParameter>
             {
                 new DbParameter("FromDate", ParameterDirection.Input, fromDate),
                 new DbParameter("ToDate", ParameterDirection.Input, toDate),
-                new DbParameter("ManagerId", ParameterDirection.Input, managerId)
+                new DbParameter("ManagerId", ParameterDirection.Input, managerId),
+                new DbParameter("Login", ParameterDirection.Input, login)
             };
 
             var rows = await _db.ExecuteListAsync<DealHistoryVM>("usp_GetDealHistory", parameters);

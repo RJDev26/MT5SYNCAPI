@@ -149,6 +149,7 @@ namespace OTS.MobileAccountingAPI.Controllers
             [FromQuery(Name = "from")] string from,
             [FromQuery(Name = "to")] string to,
             [FromQuery] long? managerId,
+            [FromQuery] long? login,
             CancellationToken ct = default)
         {
             if (!DateTime.TryParse(from, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var fromDate))
@@ -161,7 +162,7 @@ namespace OTS.MobileAccountingAPI.Controllers
                 return BadRequest("Invalid to date format.");
             }
 
-            var result = await _dealHistoryService.GetDealHistoryAsync(fromDate, toDate, managerId, ct);
+            var result = await _dealHistoryService.GetDealHistoryAsync(fromDate, toDate, managerId, login, ct);
             return Ok(new { rows = result.Rows, rowCount = result.RowCount });
         }
     }

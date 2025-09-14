@@ -7,6 +7,6 @@ namespace OTS.Service.Interfaces
 {
     public interface IDealHistoryService
     {
-        Task<DealHistoryResultVM> GetDealHistoryAsync(DateTime fromDate, DateTime toDate, long? managerId, CancellationToken ct);
+        Task<DealHistoryResultVM> GetDealHistoryAsync(DateTime fromDate, DateTime toDate, long? managerId, long? login, CancellationToken ct);
     }
 }

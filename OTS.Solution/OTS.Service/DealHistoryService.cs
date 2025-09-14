@@ -16,9 +16,9 @@ namespace OTS.Service
             _repository = repository;
         }
 
-        public Task<DealHistoryResultVM> GetDealHistoryAsync(DateTime fromDate, DateTime toDate, long? managerId, CancellationToken ct)
+        public Task<DealHistoryResultVM> GetDealHistoryAsync(DateTime fromDate, DateTime toDate, long? managerId, long? login, CancellationToken ct)
         {
-            return _repository.GetDealHistoryAsync(fromDate, toDate, managerId, ct);
+            return _repository.GetDealHistoryAsync(fromDate, toDate, managerId, login, ct);
         }
     }
 }
