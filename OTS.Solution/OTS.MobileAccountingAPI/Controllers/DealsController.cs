@@ -111,6 +111,7 @@ namespace OTS.MobileAccountingAPI.Controllers
             [FromQuery(Name = "date")] string date,
             [FromQuery] long? login,
             [FromQuery] string? symbol,
+            [FromQuery] string? option,
             CancellationToken ct = default)
         {
             if (!DateOnly.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var onDate))
@@ -118,7 +119,7 @@ namespace OTS.MobileAccountingAPI.Controllers
                 return BadRequest("Invalid date format.");
             }
 
-            var result = await _standingService.GetStandingAsync(onDate, login, symbol, ct);
+            var result = await _standingService.GetStandingAsync(onDate, login, symbol, option, ct);
             return Ok(new { rows = result.Rows, rowCount = result.RowCount });
         }
 
