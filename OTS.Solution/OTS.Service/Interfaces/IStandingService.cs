@@ -7,6 +7,6 @@ namespace OTS.Service.Interfaces
 {
     public interface IStandingService
     {
-        Task<StandingResultVM> GetStandingAsync(DateOnly onDate, long? login, string? symbol, CancellationToken ct);
+        Task<StandingResultVM> GetStandingAsync(DateOnly onDate, string? symbol, CancellationToken ct);
     }
 }
