@@ -16,9 +16,9 @@ namespace OTS.Service
             _repository = repository;
         }
 
-        public Task<StandingResultVM> GetStandingAsync(DateOnly onDate, string? symbol, CancellationToken ct)
+        public Task<StandingResultVM> GetStandingAsync(DateOnly onDate, long? login, string? symbol, CancellationToken ct)
         {
-            return _repository.GetStandingAsync(onDate, symbol, ct);
+            return _repository.GetStandingAsync(onDate, login, symbol, ct);
         }
     }
 }

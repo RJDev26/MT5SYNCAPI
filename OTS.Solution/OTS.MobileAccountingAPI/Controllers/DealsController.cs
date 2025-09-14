@@ -109,6 +109,7 @@ namespace OTS.MobileAccountingAPI.Controllers
         [HttpGet("standing")]
         public async Task<IActionResult> GetStanding(
             [FromQuery(Name = "date")] string date,
+            [FromQuery] long? login,
             [FromQuery] string? symbol,
             CancellationToken ct = default)
         {
@@ -117,7 +118,7 @@ namespace OTS.MobileAccountingAPI.Controllers
                 return BadRequest("Invalid date format.");
             }
 
-            var result = await _standingService.GetStandingAsync(onDate, symbol, ct);
+            var result = await _standingService.GetStandingAsync(onDate, login, symbol, ct);
             return Ok(new { rows = result.Rows, rowCount = result.RowCount });
         }
 

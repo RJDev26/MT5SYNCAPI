@@ -7,6 +7,6 @@ namespace MobileAccounting.Repositories.Interfaces
 {
     public interface IStandingRepository
     {
-        Task<StandingResultVM> GetStandingAsync(DateOnly onDate, string? symbol, CancellationToken ct);
+        Task<StandingResultVM> GetStandingAsync(DateOnly onDate, long? login, string? symbol, CancellationToken ct);
     }
 }
