@@ -42,6 +42,9 @@ namespace OTS.Service
             services.AddScoped<ILiveDealRepository, LiveDealRepository>();
             services.AddScoped<IOrderSnapshotRepository, OrderSnapshotRepository>();
             services.AddScoped<IJobbingDealRepository, JobbingDealRepository>();
+            services.AddScoped<IStandingRepository, StandingRepository>();
+            services.AddScoped<ILiveSummaryRepository, LiveSummaryRepository>();
+            services.AddScoped<IDealHistoryRepository, DealHistoryRepository>();
             services.AddScoped<IMasterRepository, MasterRepository>();
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -53,6 +56,9 @@ namespace OTS.Service
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IOrderSnapshotService, OrderSnapshotService>();
             services.AddScoped<IJobbingDealService, JobbingDealService>();
+            services.AddScoped<IStandingService, StandingService>();
+            services.AddScoped<ILiveSummaryService, LiveSummaryService>();
+            services.AddScoped<IDealHistoryService, DealHistoryService>();
             services.AddScoped<IMasterService, MasterService>();
 
             return services;
