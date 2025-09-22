@@ -44,5 +44,24 @@ namespace MobileAccounting.Repositories.Implementations
                 TotalRows = meta?.TotalRows
             };
         }
+
+        public async Task<CrossTradePairResultVM> GetCrossTradePairsAsync(DateTime? fromTime, DateTime? toTime, CancellationToken ct)
+        {
+            var parameters = new List<DbParameter>
+            {
+                new DbParameter("FromTime", ParameterDirection.Input, fromTime),
+                new DbParameter("ToTime", ParameterDirection.Input, toTime)
+            };
+
+            var (pairs, details) = await _db.ExecuteMultipleListAsync<CrossTradePairVM, CrossTradePairDetailVM>(
+                "usp_GetCrossTradePairs_WithTime",
+                parameters);
+
+            return new CrossTradePairResultVM
+            {
+                Pairs = pairs,
+                Details = details
+            };
+        }
     }
 }

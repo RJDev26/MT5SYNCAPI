@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Data;
     using System.Data.SqlClient;
+    using System.Linq;
     using System.Reflection;
     using System.Threading.Tasks;
 
@@ -244,6 +245,71 @@
 
                 UpdateOutParameters(command);
                 return (list1, single2);
+            }
+
+            public async Task<(List<T1> List1, List<T2> List2)> ExecuteMultipleListAsync<T1, T2>(string procedureName, List<DbParameter> parameters)
+                where T1 : new()
+                where T2 : new()
+            {
+                var list1 = new List<T1>();
+                var list2 = new List<T2>();
+
+                await using var connection = await OpenConnectionAsync();
+                await using var command = new SqlCommand(procedureName, connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                AddParameters(command, parameters);
+
+                var propertyMap1 = GetPropertyMap<T1>();
+                var propertyMap2 = GetPropertyMap<T2>();
+
+                await using var reader = await command.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    var obj = new T1();
+                    for (int i = 0; i < reader.FieldCount; i++)
+                    {
+                        string columnName = reader.GetName(i);
+                        if (propertyMap1.TryGetValue(columnName, out var prop))
+                        {
+                            var value = reader.GetValue(i);
+                            if (value != DBNull.Value)
+                            {
+                                var targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+                                prop.SetValue(obj, Convert.ChangeType(value, targetType));
+                            }
+                        }
+                    }
+                    list1.Add(obj);
+                }
+
+                if (await reader.NextResultAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var obj = new T2();
+                        for (int i = 0; i < reader.FieldCount; i++)
+                        {
+                            string columnName = reader.GetName(i);
+                            if (propertyMap2.TryGetValue(columnName, out var prop))
+                            {
+                                var value = reader.GetValue(i);
+                                if (value != DBNull.Value)
+                                {
+                                    var targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+                                    prop.SetValue(obj, Convert.ChangeType(value, targetType));
+                                }
+                            }
+                        }
+                        list2.Add(obj);
+                    }
+                }
+
+                UpdateOutParameters(command);
+                return (list1, list2);
             }
 
         }
