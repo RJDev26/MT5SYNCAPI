@@ -8,5 +8,6 @@ namespace MobileAccounting.Repositories.Interfaces
     public interface ILiveDealRepository
     {
         Task<LiveDealResultVM> GetLiveDealsAsync(DateOnly onDate, DateTime? sinceTime, string? symbol, string? action, int pageSize, bool asc, CancellationToken ct);
+        Task<CrossTradePairResultVM> GetCrossTradePairsAsync(DateTime? fromTime, DateTime? toTime, CancellationToken ct);
     }
 }

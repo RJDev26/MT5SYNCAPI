@@ -20,5 +20,10 @@ namespace OTS.Service
         {
             return _repository.GetLiveDealsAsync(onDate, sinceTime, symbol, action, pageSize, asc, ct);
         }
+
+        public Task<CrossTradePairResultVM> GetCrossTradePairsAsync(DateTime? fromTime, DateTime? toTime, CancellationToken ct)
+        {
+            return _repository.GetCrossTradePairsAsync(fromTime, toTime, ct);
+        }
     }
 }
