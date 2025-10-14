@@ -62,6 +62,38 @@ namespace OTS.MobileAccountingAPI.Controllers
             return Ok(new { rows = result.Rows, maxTime = result.MaxTime, rowCount = result.TotalRows });
         }
 
+        [HttpGet("cross-trade-pairs")]
+        public async Task<IActionResult> GetCrossTradePairs(
+            [FromQuery(Name = "from")] string? from,
+            [FromQuery(Name = "to")] string? to,
+            CancellationToken ct = default)
+        {
+            DateTime? fromTime = null;
+            if (!string.IsNullOrWhiteSpace(from))
+            {
+                if (!DateTime.TryParse(from, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var fromValue))
+                {
+                    return BadRequest("Invalid from time format.");
+                }
+
+                fromTime = fromValue;
+            }
+
+            DateTime? toTime = null;
+            if (!string.IsNullOrWhiteSpace(to))
+            {
+                if (!DateTime.TryParse(to, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var toValue))
+                {
+                    return BadRequest("Invalid to time format.");
+                }
+
+                toTime = toValue;
+            }
+
+            var result = await _liveDealService.GetCrossTradePairsAsync(fromTime, toTime, ct);
+            return Ok(new { rows = result.Pairs, details = result.Details });
+        }
+
         [HttpGet("orders-snapshot")]
         public async Task<IActionResult> GetOrdersSnapshot(
             [FromQuery] string? symbol,

@@ -8,5 +8,6 @@ namespace OTS.Service.Interfaces
     public interface ILiveDealService
     {
         Task<LiveDealResultVM> GetLiveDealsAsync(DateOnly onDate, DateTime? sinceTime, string? symbol, string? action, int pageSize, bool asc, CancellationToken ct);
+        Task<CrossTradePairResultVM> GetCrossTradePairsAsync(DateTime? fromTime, DateTime? toTime, CancellationToken ct);
     }
 }
