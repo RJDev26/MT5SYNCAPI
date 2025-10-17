@@ -79,6 +79,7 @@ namespace MobileAccounting.Repositories.Implementations
 
         public async Task<MasterResponseVM> ManageClientMasterAsync(ClientMasterRequestVM request, CancellationToken ct)
         {
+            request.ExId = string.Join(",", request.ExIds); 
             var parameters = new List<DbParameter>
             {
                 new DbParameter("Action", ParameterDirection.Input, request.Action),

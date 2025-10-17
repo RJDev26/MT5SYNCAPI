@@ -68,30 +68,40 @@ namespace OTS.MobileAccountingAPI.Controllers
             [FromQuery(Name = "to")] string? to,
             CancellationToken ct = default)
         {
-            DateTime? fromTime = null;
-            if (!string.IsNullOrWhiteSpace(from))
+            try
             {
-                if (!DateTime.TryParse(from, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var fromValue))
+
+
+                DateTime? fromTime = null;
+                if (!string.IsNullOrWhiteSpace(from))
                 {
-                    return BadRequest("Invalid from time format.");
+                    if (!DateTime.TryParse(from, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var fromValue))
+                    {
+                        return BadRequest("Invalid from time format.");
+                    }
+
+                    fromTime = fromValue;
                 }
 
-                fromTime = fromValue;
-            }
-
-            DateTime? toTime = null;
-            if (!string.IsNullOrWhiteSpace(to))
-            {
-                if (!DateTime.TryParse(to, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var toValue))
+                DateTime? toTime = null;
+                if (!string.IsNullOrWhiteSpace(to))
                 {
-                    return BadRequest("Invalid to time format.");
+                    if (!DateTime.TryParse(to, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var toValue))
+                    {
+                        return BadRequest("Invalid to time format.");
+                    }
+
+                    toTime = toValue;
                 }
 
-                toTime = toValue;
+                var result = await _liveDealService.GetCrossTradePairsAsync(fromTime, toTime, ct);
+                return Ok(new { rows = result.Pairs, details = result.Details });
             }
+            catch (Exception ex )
+            {
 
-            var result = await _liveDealService.GetCrossTradePairsAsync(fromTime, toTime, ct);
-            return Ok(new { rows = result.Pairs, details = result.Details });
+                throw;
+            }
         }
 
         [HttpGet("orders-snapshot")]

@@ -14,7 +14,7 @@ namespace OTS.DOMAIN.MobileAccountingVM
         public int? BrokerId { get; set; }
         public string BrokerName { get; set; } = string.Empty;
         public string BrokerCode { get; set; } = string.Empty;
-        public int? ExId { get; set; }
+        public string ExId { get; set; }
         public string ExCode { get; set; } = string.Empty;
         public string Exchange { get; set; } = string.Empty;
         public double? BrokShare { get; set; }

@@ -1,12 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using MobileAccounting.Repositories.Interfaces;
 using OTS.DOMAIN.MobileAccountingVM;
 using OTS.Infrastructutre.Generic.WebBroker.DataAccessCore;
+using System.Data;
 
 namespace MobileAccounting.Repositories.Implementations
 {
@@ -49,8 +44,8 @@ namespace MobileAccounting.Repositories.Implementations
         {
             var parameters = new List<DbParameter>
             {
-                new DbParameter("FromTime", ParameterDirection.Input, fromTime),
-                new DbParameter("ToTime", ParameterDirection.Input, toTime)
+                new DbParameter("FROMDATE", ParameterDirection.Input, fromTime),
+                new DbParameter("TODATE", ParameterDirection.Input, toTime)
             };
 
             var (pairs, details) = await _db.ExecuteMultipleListAsync<CrossTradePairVM, CrossTradePairDetailVM>(
