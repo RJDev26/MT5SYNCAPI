@@ -66,6 +66,7 @@ namespace OTS.MobileAccountingAPI.Controllers
         public async Task<IActionResult> GetCrossTradePairs(
             [FromQuery(Name = "from")] string? from,
             [FromQuery(Name = "to")] string? to,
+            [FromQuery(Name = "type")] string? type,
             CancellationToken ct = default)
         {
             try
@@ -92,6 +93,12 @@ namespace OTS.MobileAccountingAPI.Controllers
                     }
 
                     toTime = toValue;
+                }
+
+                if (string.Equals(type, "DiffIP", StringComparison.OrdinalIgnoreCase))
+                {
+                    var diffIpResult = await _liveDealService.GetCrossTradePairsDiffIpAsync(fromTime, toTime, ct);
+                    return Ok(new { rows = diffIpResult });
                 }
 
                 var result = await _liveDealService.GetCrossTradePairsAsync(fromTime, toTime, ct);
