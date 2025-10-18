@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MobileAccounting.Repositories.Interfaces;
@@ -24,6 +25,11 @@ namespace OTS.Service
         public Task<CrossTradePairResultVM> GetCrossTradePairsAsync(DateTime? fromTime, DateTime? toTime, CancellationToken ct)
         {
             return _repository.GetCrossTradePairsAsync(fromTime, toTime, ct);
+        }
+
+        public Task<List<CrossTradePairDiffIpVM>> GetCrossTradePairsDiffIpAsync(DateTime? fromTime, DateTime? toTime, CancellationToken ct)
+        {
+            return _repository.GetCrossTradePairsDiffIpAsync(fromTime, toTime, ct);
         }
     }
 }

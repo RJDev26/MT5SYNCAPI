@@ -1,7 +1,9 @@
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
 using MobileAccounting.Repositories.Interfaces;
 using OTS.DOMAIN.MobileAccountingVM;
 using OTS.Infrastructutre.Generic.WebBroker.DataAccessCore;
-using System.Data;
 
 namespace MobileAccounting.Repositories.Implementations
 {
@@ -57,6 +59,19 @@ namespace MobileAccounting.Repositories.Implementations
                 Pairs = pairs,
                 Details = details
             };
+        }
+
+        public Task<List<CrossTradePairDiffIpVM>> GetCrossTradePairsDiffIpAsync(DateTime? fromTime, DateTime? toTime, CancellationToken ct)
+        {
+            var parameters = new List<DbParameter>
+            {
+                new DbParameter("FROMDATE", ParameterDirection.Input, fromTime),
+                new DbParameter("TODATE", ParameterDirection.Input, toTime)
+            };
+
+            return _db.ExecuteListAsync<CrossTradePairDiffIpVM>(
+                "usp_GetCrossTradePairs_DiffIP",
+                parameters);
         }
     }
 }
