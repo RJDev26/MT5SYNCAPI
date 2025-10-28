@@ -66,42 +66,45 @@ namespace OTS.MobileAccountingAPI.Controllers
         public async Task<IActionResult> GetCrossTradePairs(
             [FromQuery(Name = "from")] string? from,
             [FromQuery(Name = "to")] string? to,
+            [FromQuery(Name = "type")] string? type,
             CancellationToken ct = default)
         {
-            try
+            if (!TryParseUtcDateTime(from, out var fromTime))
             {
-
-
-                DateTime? fromTime = null;
-                if (!string.IsNullOrWhiteSpace(from))
-                {
-                    if (!DateTime.TryParse(from, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var fromValue))
-                    {
-                        return BadRequest("Invalid from time format.");
-                    }
-
-                    fromTime = fromValue;
-                }
-
-                DateTime? toTime = null;
-                if (!string.IsNullOrWhiteSpace(to))
-                {
-                    if (!DateTime.TryParse(to, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var toValue))
-                    {
-                        return BadRequest("Invalid to time format.");
-                    }
-
-                    toTime = toValue;
-                }
-
-                var result = await _liveDealService.GetCrossTradePairsAsync(fromTime, toTime, ct);
-                return Ok(new { rows = result.Pairs, details = result.Details });
+                return BadRequest("Invalid from time format.");
             }
-            catch (Exception ex )
+
+            if (!TryParseUtcDateTime(to, out var toTime))
             {
-
-                throw;
+                return BadRequest("Invalid to time format.");
             }
+
+            if (!string.IsNullOrWhiteSpace(type) && string.Equals(type.Trim(), "DiffIP", StringComparison.OrdinalIgnoreCase))
+            {
+                var diffIpResult = await _liveDealService.GetCrossTradePairsDiffIpAsync(fromTime, toTime, ct).ConfigureAwait(false);
+                return Ok(new { rows = diffIpResult });
+            }
+
+            var result = await _liveDealService.GetCrossTradePairsAsync(fromTime, toTime, ct).ConfigureAwait(false);
+            return Ok(new { rows = result.Pairs, details = result.Details });
+        }
+
+        private static bool TryParseUtcDateTime(string? value, out DateTime? parsed)
+        {
+            parsed = null;
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return true;
+            }
+
+            if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var parsedValue))
+            {
+                parsed = parsedValue;
+                return true;
+            }
+
+            return false;
         }
 
         [HttpGet("orders-snapshot")]
