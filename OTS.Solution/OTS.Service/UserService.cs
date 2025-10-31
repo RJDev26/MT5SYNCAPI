@@ -4,8 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using MobileAccounting.Entities;
-using OTS.DOMAIN.Database;
 using OTS.DOMAIN.MobileAccountingVM;
 using OTS.Service.Interfaces;
 
@@ -14,12 +12,9 @@ namespace OTS.Service
     public class UserService : IUserService
     {
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly AccountingDbContext _dbContext;
-
-        public UserService(UserManager<ApplicationUser> userManager, AccountingDbContext dbContext)
+        public UserService(UserManager<ApplicationUser> userManager)
         {
             _userManager = userManager;
-            _dbContext = dbContext;
         }
 
         public async Task<UserResponseVM> CreateUserAsync(CreateUserRequestVM request)
@@ -57,8 +52,6 @@ namespace OTS.Service
             {
                 return BuildFailureResponse("Unable to create user.", creationResult.Errors);
             }
-
-            await CreateUserEntityAsync(identityUser);
 
             return BuildSuccessResponse("User created successfully.", identityUser);
         }
@@ -101,9 +94,6 @@ namespace OTS.Service
             {
                 return BuildFailureResponse("Unable to update user.", updateResult.Errors);
             }
-
-            await UpdateUserEntityAsync(user, updatePassword: false);
-
             return BuildSuccessResponse("User updated successfully.", user);
         }
 
@@ -122,8 +112,6 @@ namespace OTS.Service
             }
 
             await _userManager.UpdateSecurityStampAsync(user);
-            await UpdateUserEntityAsync(user, updatePassword: true);
-
             return BuildSuccessResponse("Password changed successfully.", user, includeDetails: false);
         }
 
@@ -143,8 +131,6 @@ namespace OTS.Service
             }
 
             await _userManager.UpdateSecurityStampAsync(user);
-            await UpdateUserEntityAsync(user, updatePassword: true);
-
             return BuildSuccessResponse("Password reset successfully.", user, includeDetails: false);
         }
 
@@ -155,63 +141,7 @@ namespace OTS.Service
             {
                 maxIdentityId = await _userManager.Users.MaxAsync(u => u.UserId);
             }
-
-            var maxUserEntityId = 0;
-            if (await _dbContext.Users.AnyAsync())
-            {
-                maxUserEntityId = await _dbContext.Users.MaxAsync(u => u.UserId);
-            }
-
-            return Math.Max(maxIdentityId, maxUserEntityId) + 1;
-        }
-
-        private async Task CreateUserEntityAsync(ApplicationUser identityUser)
-        {
-            var existingEntity = await _dbContext.Users.FirstOrDefaultAsync(u => u.UserId == identityUser.UserId);
-            if (existingEntity != null)
-            {
-                await UpdateUserEntityAsync(identityUser, updatePassword: true);
-                return;
-            }
-
-            var entity = new User
-            {
-                UserId = identityUser.UserId,
-                Username = identityUser.UserName ?? string.Empty,
-                Email = identityUser.Email ?? string.Empty,
-                PasswordHash = identityUser.PasswordHash ?? string.Empty,
-                Role = identityUser.Role ?? string.Empty,
-                IsActive = identityUser.IsActive,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await _dbContext.Users.AddAsync(entity);
-            await _dbContext.SaveChangesAsync();
-        }
-
-        private async Task UpdateUserEntityAsync(ApplicationUser identityUser, bool updatePassword)
-        {
-            var entity = await _dbContext.Users.FirstOrDefaultAsync(u => u.UserId == identityUser.UserId);
-            if (entity == null)
-            {
-                entity = new User
-                {
-                    UserId = identityUser.UserId,
-                    CreatedAt = DateTime.UtcNow
-                };
-                await _dbContext.Users.AddAsync(entity);
-            }
-
-            entity.Username = identityUser.UserName ?? string.Empty;
-            entity.Email = identityUser.Email ?? string.Empty;
-            entity.Role = identityUser.Role ?? string.Empty;
-            entity.IsActive = identityUser.IsActive;
-            if (updatePassword || string.IsNullOrEmpty(entity.PasswordHash))
-            {
-                entity.PasswordHash = identityUser.PasswordHash ?? string.Empty;
-            }
-
-            await _dbContext.SaveChangesAsync();
+            return maxIdentityId + 1;
         }
 
         private static UserResponseVM BuildSuccessResponse(string message, ApplicationUser user, bool includeDetails = true)
