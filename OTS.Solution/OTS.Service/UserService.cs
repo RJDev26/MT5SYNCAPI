@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MobileAccounting.Entities;
 using OTS.DOMAIN.MobileAccountingVM;
 using OTS.Service.Interfaces;
 
