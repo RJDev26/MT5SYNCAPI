@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using OTS.DOMAIN.MobileAccountingVM;
 using OTS.Service.Interfaces;
@@ -14,6 +16,13 @@ namespace OTS.MobileAccountingAPI.Controllers
         public UsersController(IUserService userService)
         {
             _userService = userService;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<UserListItemVM>>> GetUsers([FromQuery] string? role, [FromQuery] bool? isActive)
+        {
+            var users = await _userService.GetUserListAsync(role, isActive);
+            return Ok(users);
         }
 
         [HttpPost]

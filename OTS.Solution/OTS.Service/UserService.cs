@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
@@ -7,15 +8,19 @@ using Microsoft.EntityFrameworkCore;
 using MobileAccounting.Entities;
 using OTS.DOMAIN.MobileAccountingVM;
 using OTS.Service.Interfaces;
+using OTS.Infrastructutre.Generic.WebBroker.DataAccessCore;
 
 namespace OTS.Service
 {
     public class UserService : IUserService
     {
         private readonly UserManager<ApplicationUser> _userManager;
-        public UserService(UserManager<ApplicationUser> userManager)
+        private readonly DbManager _dbManager;
+
+        public UserService(UserManager<ApplicationUser> userManager, DbManager dbManager)
         {
             _userManager = userManager;
+            _dbManager = dbManager;
         }
 
         public async Task<UserResponseVM> CreateUserAsync(CreateUserRequestVM request)
@@ -133,6 +138,18 @@ namespace OTS.Service
 
             await _userManager.UpdateSecurityStampAsync(user);
             return BuildSuccessResponse("Password reset successfully.", user, includeDetails: false);
+        }
+
+        public async Task<IEnumerable<UserListItemVM>> GetUserListAsync(string? role, bool? isActive)
+        {
+            var parameters = new List<DbParameter>
+            {
+                new DbParameter("Role", ParameterDirection.Input, role),
+                new DbParameter("IsActive", ParameterDirection.Input, isActive)
+            };
+
+            var users = await _dbManager.ExecuteListAsync<UserListItemVM>("usp_GetUserList", parameters);
+            return users;
         }
 
         private async Task<int> GetNextUserIdAsync()
