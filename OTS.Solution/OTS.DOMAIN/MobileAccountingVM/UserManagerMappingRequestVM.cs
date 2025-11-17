@@ -8,5 +8,7 @@ namespace OTS.DOMAIN.MobileAccountingVM
 
         [Required]
         public string ManagerIds { get; set; } = string.Empty;
+
+        public string Action { get; set; } = "INSERT";
     }
 }

@@ -160,13 +160,16 @@ namespace OTS.Service
                 return BuildNotFoundResponse();
             }
 
+            var action = string.IsNullOrWhiteSpace(request.Action) ? "INSERT" : request.Action;
+
             var parameters = new List<DbParameter>
             {
                 new DbParameter("UserId", ParameterDirection.Input, request.UserId),
-                new DbParameter("ManagerIds", ParameterDirection.Input, request.ManagerIds)
+                new DbParameter("ManagerIds", ParameterDirection.Input, request.ManagerIds),
+                new DbParameter("Action", ParameterDirection.Input, action)
             };
 
-            await _dbManager.ExecuteNonQueryAsync("usp_InsertUserManagerMapping", parameters);
+            await _dbManager.ExecuteNonQueryAsync("usp_ManageUserManagerMapping", parameters);
 
             return BuildSuccessResponse("User manager mapping saved successfully.", user);
         }
