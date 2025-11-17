@@ -174,14 +174,14 @@ namespace OTS.Service
             return BuildSuccessResponse("User manager mapping saved successfully.", user);
         }
 
-        public async Task<IEnumerable<UserManagerVM>> GetManagersByUserIdAsync(int userId)
+        public async Task<IEnumerable<ManagerSummaryVM>> GetManagersByUserIdAsync(int userId)
         {
             var parameters = new List<DbParameter>
             {
                 new DbParameter("UserId", ParameterDirection.Input, userId)
             };
 
-            var managers = await _dbManager.ExecuteListAsync<UserManagerVM>("usp_GetManagersByUserId", parameters);
+            var managers = await _dbManager.ExecuteListAsync<ManagerSummaryVM>("usp_GetManagersByUserId", parameters);
             return managers;
         }
 
