@@ -131,6 +131,13 @@ namespace OTS.MobileAccountingAPI.Controllers
             return Ok(response);
         }
 
+        [HttpGet("{userId:int}/managers")]
+        public async Task<ActionResult<IEnumerable<UserManagerVM>>> GetUserManagers(int userId)
+        {
+            var managers = await _userService.GetManagersByUserIdAsync(userId);
+            return Ok(managers);
+        }
+
         private UserResponseVM ModelStateErrorsResponse(string message)
         {
             var errors = ModelState.Values

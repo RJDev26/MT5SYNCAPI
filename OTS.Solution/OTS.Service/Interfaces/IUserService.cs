@@ -12,5 +12,6 @@ namespace OTS.Service.Interfaces
         Task<UserResponseVM> ResetPasswordAsync(string id, ResetPasswordRequestVM request);
         Task<IEnumerable<UserListItemVM>> GetUserListAsync(string? role, bool? isActive);
         Task<UserResponseVM> SetUserManagerMappingAsync(UserManagerMappingRequestVM request);
+        Task<IEnumerable<UserManagerVM>> GetManagersByUserIdAsync(int userId);
     }
 }
