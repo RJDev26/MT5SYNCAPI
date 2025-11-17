@@ -108,6 +108,29 @@ namespace OTS.MobileAccountingAPI.Controllers
             return Ok(response);
         }
 
+        [HttpPost("{userId:int}/manager-mapping")]
+        public async Task<IActionResult> SetUserManagerMapping(int userId, [FromBody] UserManagerMappingRequestVM request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelStateErrorsResponse("Invalid manager mapping data."));
+            }
+
+            request.UserId = userId;
+            var response = await _userService.SetUserManagerMappingAsync(request);
+            if (response.IsNotFound)
+            {
+                return NotFound(response);
+            }
+
+            if (!response.IsSuccess)
+            {
+                return BadRequest(response);
+            }
+
+            return Ok(response);
+        }
+
         private UserResponseVM ModelStateErrorsResponse(string message)
         {
             var errors = ModelState.Values

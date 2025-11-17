@@ -152,6 +152,25 @@ namespace OTS.Service
             return users;
         }
 
+        public async Task<UserResponseVM> SetUserManagerMappingAsync(UserManagerMappingRequestVM request)
+        {
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+            if (user == null)
+            {
+                return BuildNotFoundResponse();
+            }
+
+            var parameters = new List<DbParameter>
+            {
+                new DbParameter("UserId", ParameterDirection.Input, request.UserId),
+                new DbParameter("ManagerIds", ParameterDirection.Input, request.ManagerIds)
+            };
+
+            await _dbManager.ExecuteNonQueryAsync("usp_InsertUserManagerMapping", parameters);
+
+            return BuildSuccessResponse("User manager mapping saved successfully.", user);
+        }
+
         private async Task<int> GetNextUserIdAsync()
         {
             var maxIdentityId = 0;
