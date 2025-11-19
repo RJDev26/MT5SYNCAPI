@@ -40,10 +40,11 @@ namespace OTS.MobileAccountingAPI.Controllers
             [FromQuery] string? symbol,
             [FromQuery] string? action,
             [FromQuery] int? pageSize,
+            [FromQuery(Name = "userId")] int? userId,
             [FromQuery] bool asc = false,
             CancellationToken ct = default)
         {
-            if (!TryGetUserId(out var userId))
+            if (!TryResolveUserId(userId, out var effectiveUserId))
             {
                 return Unauthorized();
             }
@@ -64,7 +65,7 @@ namespace OTS.MobileAccountingAPI.Controllers
                 parsedSinceTime = dt;
             }
 
-            var result = await _liveDealService.GetLiveDealsAsync(onDate, parsedSinceTime, symbol, action, pageSize ?? 500, asc, userId, ct);
+            var result = await _liveDealService.GetLiveDealsAsync(onDate, parsedSinceTime, symbol, action, pageSize ?? 500, asc, effectiveUserId, ct);
             return Ok(new { rows = result.Rows, maxTime = result.MaxTime, rowCount = result.TotalRows });
         }
 
@@ -113,9 +114,14 @@ namespace OTS.MobileAccountingAPI.Controllers
             return false;
         }
 
-        private bool TryGetUserId(out int userId)
+        private bool TryResolveUserId(int? requestedUserId, out int userId)
         {
             userId = default;
+            if (requestedUserId.HasValue)
+            {
+                userId = requestedUserId.Value;
+                return true;
+            }
 
             var userIdClaim = User.FindFirst("userId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
             return userIdClaim != null && int.TryParse(userIdClaim.Value, out userId);

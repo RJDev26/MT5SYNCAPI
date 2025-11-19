@@ -25,6 +25,7 @@ namespace MobileAccounting.Repositories.Implementations
                 new DbParameter("Symbol", ParameterDirection.Input, symbol),
                 new DbParameter("Action", ParameterDirection.Input, action),
                 new DbParameter("PageSize", ParameterDirection.Input, pageSize),
+                // Restrict the result set to the requested user when executing usp_GetLiveDeals
                 new DbParameter("UserId", ParameterDirection.Input, userId)
             };
 
