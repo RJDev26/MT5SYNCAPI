@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using OTS.Service.Interfaces;
 
@@ -42,6 +43,11 @@ namespace OTS.MobileAccountingAPI.Controllers
             [FromQuery] bool asc = false,
             CancellationToken ct = default)
         {
+            if (!TryGetUserId(out var userId))
+            {
+                return Unauthorized();
+            }
+
             if (!DateOnly.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var onDate))
             {
                 return BadRequest("Invalid date format.");
@@ -58,7 +64,7 @@ namespace OTS.MobileAccountingAPI.Controllers
                 parsedSinceTime = dt;
             }
 
-            var result = await _liveDealService.GetLiveDealsAsync(onDate, parsedSinceTime, symbol, action, pageSize ?? 500, asc, ct);
+            var result = await _liveDealService.GetLiveDealsAsync(onDate, parsedSinceTime, symbol, action, pageSize ?? 500, asc, userId, ct);
             return Ok(new { rows = result.Rows, maxTime = result.MaxTime, rowCount = result.TotalRows });
         }
 
@@ -105,6 +111,14 @@ namespace OTS.MobileAccountingAPI.Controllers
             }
 
             return false;
+        }
+
+        private bool TryGetUserId(out int userId)
+        {
+            userId = default;
+
+            var userIdClaim = User.FindFirst("userId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
+            return userIdClaim != null && int.TryParse(userIdClaim.Value, out userId);
         }
 
         [HttpGet("orders-snapshot")]
