@@ -132,9 +132,15 @@ namespace OTS.MobileAccountingAPI.Controllers
             [FromQuery] string? symbol,
             [FromQuery] long? orderId,
             [FromQuery] int? top,
+            [FromQuery(Name = "userId")] int? userId,
             CancellationToken ct = default)
         {
-            var result = await _orderSnapshotService.GetOrdersSnapshotAsync(symbol, orderId, top, ct);
+            if (!TryResolveUserId(userId, out var effectiveUserId))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _orderSnapshotService.GetOrdersSnapshotAsync(symbol, orderId, top, effectiveUserId, ct);
             return Ok(new { rows = result.Rows, maxTime = result.MaxTime, rowCount = result.TotalRows });
         }
 
