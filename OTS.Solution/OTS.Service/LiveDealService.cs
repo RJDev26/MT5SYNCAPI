@@ -17,9 +17,9 @@ namespace OTS.Service
             _repository = repository;
         }
 
-        public Task<LiveDealResultVM> GetLiveDealsAsync(DateOnly onDate, DateTime? sinceTime, string? symbol, string? action, int pageSize, bool asc, CancellationToken ct)
+        public Task<LiveDealResultVM> GetLiveDealsAsync(DateOnly onDate, DateTime? sinceTime, string? symbol, string? action, int pageSize, bool asc, int userId, CancellationToken ct)
         {
-            return _repository.GetLiveDealsAsync(onDate, sinceTime, symbol, action, pageSize, asc, ct);
+            return _repository.GetLiveDealsAsync(onDate, sinceTime, symbol, action, pageSize, asc, userId, ct);
         }
 
         public Task<CrossTradePairResultVM> GetCrossTradePairsAsync(DateTime? fromTime, DateTime? toTime, CancellationToken ct)

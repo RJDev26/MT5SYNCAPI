@@ -18,17 +18,19 @@ namespace MobileAccounting.Repositories.Implementations
             _db = db;
         }
 
-        public async Task<OrderSnapshotResultVM> GetOrdersSnapshotAsync(string? symbol, long? orderId, int? top, CancellationToken ct)
+        public async Task<OrderSnapshotResultVM> GetOrdersSnapshotAsync(string? symbol, long? orderId, int? top, int userId, CancellationToken ct)
         {
             var parameters = new List<DbParameter>
             {
                 new DbParameter("Symbol", ParameterDirection.Input, symbol ?? (object)DBNull.Value),
                 new DbParameter("OrderId", ParameterDirection.Input, orderId ?? (object)DBNull.Value),
-                new DbParameter("Top", ParameterDirection.Input, top ?? (object)DBNull.Value)
+                new DbParameter("Top", ParameterDirection.Input, top ?? (object)DBNull.Value),
+                new DbParameter("UserId", ParameterDirection.Input, userId)
             };
 
             var (rows, meta) = await _db.ExecuteMultipleAsync<OrderSnapshotVM, OrderSnapshotMetaVM>(
-                "usp_GetOrdersSnapshot", parameters);
+                "usp_GetOrdersSnapshot",
+                parameters);
 
             return new OrderSnapshotResultVM
             {

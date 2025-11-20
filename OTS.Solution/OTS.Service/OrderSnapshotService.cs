@@ -16,9 +16,9 @@ namespace OTS.Service
             _repository = repository;
         }
 
-        public Task<OrderSnapshotResultVM> GetOrdersSnapshotAsync(string? symbol, long? orderId, int? top, CancellationToken ct)
+        public Task<OrderSnapshotResultVM> GetOrdersSnapshotAsync(string? symbol, long? orderId, int? top, int userId, CancellationToken ct)
         {
-            return _repository.GetOrdersSnapshotAsync(symbol, orderId, top, ct);
+            return _repository.GetOrdersSnapshotAsync(symbol, orderId, top, userId, ct);
         }
     }
 }
