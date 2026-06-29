@@ -40,7 +40,7 @@ public sealed class Mt5ManagerClient : IDisposable
         _factory = Activator.CreateInstance(factoryType) ?? factoryType;
 
         InitializeFactory(_factory);
-        var version = ReadApiVersion(_factory);
+        var version = ReadApiVersionConstant(_factory) ?? 0;
         _manager = CreateManager(_factory, version);
 
         var connectResult = Invoke(
@@ -216,20 +216,6 @@ public sealed class Mt5ManagerClient : IDisposable
         // initialization is not required. Continue to Version/CreateManager/Connect,
         // because those calls are the real validation for getting orders and deals
         // with manager credentials.
-    }
-
-    private static uint ReadApiVersion(object factory)
-    {
-        try
-        {
-            var invocation = InvokeWithOut(factory, "Version", typeof(uint));
-            EnsureOk(invocation.ReturnValue, "Version");
-            return invocation.OutValues.OfType<uint>().FirstOrDefault();
-        }
-        catch (MissingMethodException)
-        {
-            return ReadApiVersionConstant(factory) ?? 0;
-        }
     }
 
     private static object CreateManager(object factory, uint version)
