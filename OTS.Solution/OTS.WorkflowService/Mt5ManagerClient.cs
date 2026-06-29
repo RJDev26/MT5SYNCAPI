@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Text.Json;
 
 namespace OTS.WorkflowService;
@@ -206,9 +207,57 @@ public sealed class Mt5ManagerClient : IDisposable
 
     private static Assembly LoadManagerAssembly()
     {
-        return AppDomain.CurrentDomain.GetAssemblies()
-                   .FirstOrDefault(a => a.GetName().Name?.Contains("MT5ManagerAPI", StringComparison.OrdinalIgnoreCase) == true)
-               ?? Assembly.Load("MetaQuotes.MT5ManagerAPI64-net2.0");
+        var loadedAssembly = AppDomain.CurrentDomain.GetAssemblies()
+            .FirstOrDefault(a => a.GetName().Name?.Contains("MT5ManagerAPI", StringComparison.OrdinalIgnoreCase) == true);
+        if (loadedAssembly is not null)
+        {
+            return loadedAssembly;
+        }
+
+        foreach (var assemblyPath in GetManagerAssemblyCandidates())
+        {
+            try
+            {
+                return AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
+            }
+            catch (FileLoadException)
+            {
+                return Assembly.LoadFrom(assemblyPath);
+            }
+            catch (BadImageFormatException)
+            {
+                // Ignore native helper DLLs; continue until the managed wrapper DLL is found.
+            }
+        }
+
+        throw new FileNotFoundException(
+            "Unable to locate the managed MT5 Manager API assembly. Ensure the MetaQuotes.MT5ManagerAPI64-net2.0 package DLLs are copied to the WorkflowService output folder.");
+    }
+
+    private static IEnumerable<string> GetManagerAssemblyCandidates()
+    {
+        var baseDirectory = AppContext.BaseDirectory;
+        var candidateNames = new[]
+        {
+            "MetaQuotes.MT5ManagerAPI64.dll",
+            "MetaQuotes.MT5ManagerAPI.dll",
+            "MT5ManagerAPI64.dll",
+            "MT5ManagerAPI.dll"
+        };
+
+        foreach (var candidateName in candidateNames)
+        {
+            var path = Path.Combine(baseDirectory, candidateName);
+            if (File.Exists(path))
+            {
+                yield return path;
+            }
+        }
+
+        foreach (var path in Directory.EnumerateFiles(baseDirectory, "*MT5*Manager*API*.dll", SearchOption.AllDirectories))
+        {
+            yield return path;
+        }
     }
 
     private static Type GetFactoryType(Assembly assembly)
