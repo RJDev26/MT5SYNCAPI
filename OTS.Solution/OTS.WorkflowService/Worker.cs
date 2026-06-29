@@ -26,16 +26,16 @@ namespace OTS.WorkflowService
                         "MT5 snapshot received from {Server}: {OrderCount} order rows and {TradeCount} trade rows.",
                         _options.Server,
                         snapshot.Orders.Count,
-                        snapshot.Trades.Count);
+                        snapshot.Deals.Count);
 
                     foreach (var order in snapshot.Orders.Take(_options.PreviewCount > int.MaxValue ? int.MaxValue : (int)_options.PreviewCount))
                     {
                         _logger.LogInformation("MT5 order: {Order}", order);
                     }
 
-                    foreach (var trade in snapshot.Trades.Take(_options.PreviewCount > int.MaxValue ? int.MaxValue : (int)_options.PreviewCount))
+                    foreach (var trade in snapshot.Deals.Take(_options.PreviewCount > int.MaxValue ? int.MaxValue : (int)_options.PreviewCount))
                     {
-                        _logger.LogInformation("MT5 trade: {Trade}", trade);
+                        _logger.LogInformation("MT5 deal: {Trade}", trade);
                     }
                 }
                 catch (Exception ex)
