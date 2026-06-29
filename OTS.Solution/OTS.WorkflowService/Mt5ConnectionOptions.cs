@@ -19,4 +19,12 @@ public sealed class Mt5ConnectionOptions
     public int ConnectTimeoutSeconds { get; set; } = 10;
 
     public string OutputDirectory { get; set; } = "mt5-data";
+
+    public string SdkDirectory { get; set; } = "Libs/MT5ManagerAPI";
+
+    public int HistoryLookbackDays { get; set; } = 1;
+
+    public ulong[] TradingLogins { get; set; } = Array.Empty<ulong>();
+
+    public string ServerEndpoint => $"{Server}:{Port}";
 }
