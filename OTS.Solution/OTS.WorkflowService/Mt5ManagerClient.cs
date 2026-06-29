@@ -240,8 +240,21 @@ public sealed class Mt5ManagerClient : IDisposable
         try
         {
             var invocation = InvokeWithOut(factory, "CreateManager", typeof(object), arguments);
-            EnsureOk(invocation.OutValues.FirstOrDefault(), "CreateManager");
-            return invocation.ReturnValue;
+            var outValue = invocation.OutValues.FirstOrDefault(v => v is not null);
+
+            if (LooksLikeReturnCode(invocation.ReturnValue) && outValue is not null)
+            {
+                EnsureOk(invocation.ReturnValue, "CreateManager");
+                return outValue;
+            }
+
+            if (LooksLikeReturnCode(outValue))
+            {
+                EnsureOk(outValue, "CreateManager");
+                return invocation.ReturnValue;
+            }
+
+            return invocation.ReturnValue ?? outValue;
         }
         catch
         {
@@ -505,6 +518,31 @@ public sealed class Mt5ManagerClient : IDisposable
         return value is IConvertible && typeof(IConvertible).IsAssignableFrom(type);
     }
 
+
+
+    private static bool LooksLikeReturnCode(object? value)
+    {
+        if (value is null)
+        {
+            return false;
+        }
+
+        var type = value.GetType();
+        return type.IsEnum || value is bool || IsNumericType(type);
+    }
+
+    private static bool IsNumericType(Type type)
+    {
+        type = Nullable.GetUnderlyingType(type) ?? type;
+        return type == typeof(byte)
+            || type == typeof(sbyte)
+            || type == typeof(short)
+            || type == typeof(ushort)
+            || type == typeof(int)
+            || type == typeof(uint)
+            || type == typeof(long)
+            || type == typeof(ulong);
+    }
 
     private static bool IsOkReturnCode(object? returnValue)
     {
