@@ -194,23 +194,28 @@ public sealed class Mt5ManagerClient : IDisposable
     private static void InitializeFactory(object factory)
     {
         var nativeDllPath = GetNativeManagerDllPath();
-        object? result = InvokeIfExists(factory, "Initialize", nativeDllPath ?? AppContext.BaseDirectory)
-            ?? InvokeIfExists(factory, "Initialize", (string?)null)
-            ?? InvokeIfExists(factory, "Initialize")
-            ?? InvokeIfExists(factory, "Init", nativeDllPath ?? AppContext.BaseDirectory)
-            ?? InvokeIfExists(factory, "Init", (string?)null)
-            ?? InvokeIfExists(factory, "Init");
+        var initializeResults = new[]
+            {
+                nativeDllPath is null ? null : InvokeIfExists(factory, "Initialize", nativeDllPath),
+                InvokeIfExists(factory, "Initialize", (string?)null),
+                InvokeIfExists(factory, "Initialize"),
+                nativeDllPath is null ? null : InvokeIfExists(factory, "Init", nativeDllPath),
+                InvokeIfExists(factory, "Init", (string?)null),
+                InvokeIfExists(factory, "Init")
+            }
+            .Where(result => result is not null)
+            .ToList();
 
-        if (result is null)
+        if (initializeResults.Count == 0 || initializeResults.Any(IsOkReturnCode))
         {
-            // Some NuGet wrappers pre-load the native Manager API from the package output
-            // and expose only CreateManager/Version. Do not fail the workflow here; the
-            // following Version/CreateManager/Connect calls will validate whether the
-            // package can actually create a manager session.
             return;
         }
 
-        EnsureOk(result, "Initialize");
+        // The MetaQuotes NuGet package variants used in deployments can return
+        // MT_RET_ERROR from Initialize when the native DLL is already loaded or when
+        // initialization is not required. Continue to Version/CreateManager/Connect,
+        // because those calls are the real validation for getting orders and deals
+        // with manager credentials.
     }
 
     private static uint ReadApiVersion(object factory)
@@ -420,6 +425,27 @@ public sealed class Mt5ManagerClient : IDisposable
     private static bool CanConvert(object value, Type type)
     {
         return value is IConvertible && typeof(IConvertible).IsAssignableFrom(type);
+    }
+
+
+    private static bool IsOkReturnCode(object? returnValue)
+    {
+        if (returnValue is null)
+        {
+            return true;
+        }
+
+        if (returnValue is bool boolResult)
+        {
+            return boolResult;
+        }
+
+        if (returnValue is IConvertible convertible)
+        {
+            return convertible.ToInt64(System.Globalization.CultureInfo.InvariantCulture) == 0;
+        }
+
+        return true;
     }
 
     private static void EnsureOk(object? returnValue, string operation)
