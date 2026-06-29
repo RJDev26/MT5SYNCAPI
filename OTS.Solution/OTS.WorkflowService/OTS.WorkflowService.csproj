@@ -8,7 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MetaQuotes.MT5ManagerAPI64-net2.0" Version="1755.0.0" />
+    <!--
+      The native MT5 Manager API (net2.0 mixed-mode, x64) is NOT referenced here.
+      It lives in the net48 OTS.Mt5Bridge sidecar; this worker calls it over HTTP.
+    -->
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
   </ItemGroup>
 </Project>
