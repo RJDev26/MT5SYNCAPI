@@ -18,6 +18,7 @@ public sealed class Mt5ManagerClient : IDisposable
 
     private readonly Mt5ManagerOptions _options;
     private readonly ILogger<Mt5ManagerClient> _logger;
+    private object? _factory;
     private object? _manager;
     private bool _connected;
 
@@ -35,11 +36,12 @@ public sealed class Mt5ManagerClient : IDisposable
         }
 
         var assembly = LoadManagerAssembly();
-        var factory = GetFactoryType(assembly);
+        var factoryType = GetFactoryType(assembly);
+        _factory = Activator.CreateInstance(factoryType) ?? factoryType;
 
-        EnsureOk(Invoke(factory, "Initialize"), "Initialize");
-        var version = ReadApiVersion(factory);
-        _manager = CreateManager(factory, version);
+        InitializeFactory(_factory);
+        var version = ReadApiVersion(_factory);
+        _manager = CreateManager(_factory, version);
 
         var connectResult = Invoke(
             _manager,
@@ -79,13 +81,12 @@ public sealed class Mt5ManagerClient : IDisposable
         _manager = null;
         _connected = false;
 
-        var assembly = AppDomain.CurrentDomain.GetAssemblies()
-            .FirstOrDefault(a => a.GetName().Name?.Contains("MT5ManagerAPI", StringComparison.OrdinalIgnoreCase) == true);
-        var factory = assembly is null ? null : GetFactoryTypeOrDefault(assembly);
-        if (factory is not null)
+        if (_factory is not null)
         {
-            InvokeIfExists(factory, "Shutdown");
+            InvokeIfExists(_factory, "Shutdown");
         }
+
+        _factory = null;
     }
 
     private IEnumerable<string> ReadCurrentOrders(object manager)
@@ -190,18 +191,36 @@ public sealed class Mt5ManagerClient : IDisposable
         }
     }
 
-    private static uint ReadApiVersion(Type factory)
+    private static void InitializeFactory(object factory)
+    {
+        var nativeDllPath = GetNativeManagerDllPath();
+        object? result;
+        try
+        {
+            result = nativeDllPath is null
+                ? Invoke(factory, "Initialize", (string?)null)
+                : Invoke(factory, "Initialize", nativeDllPath);
+        }
+        catch (MissingMethodException)
+        {
+            result = Invoke(factory, "Initialize");
+        }
+
+        EnsureOk(result, "Initialize");
+    }
+
+    private static uint ReadApiVersion(object factory)
     {
         var invocation = InvokeWithOut(factory, "Version", typeof(uint));
         EnsureOk(invocation.ReturnValue, "Version");
         return invocation.OutValues.OfType<uint>().FirstOrDefault();
     }
 
-    private static object CreateManager(Type factory, uint version)
+    private static object CreateManager(object factory, uint version)
     {
         var invocation = InvokeWithOut(factory, "CreateManager", typeof(object), version);
-        EnsureOk(invocation.ReturnValue, "CreateManager");
-        return invocation.OutValues.FirstOrDefault(v => v is not null)
+        EnsureOk(invocation.OutValues.FirstOrDefault(), "CreateManager");
+        return invocation.ReturnValue
             ?? throw new InvalidOperationException("CreateManager succeeded but did not return a manager instance.");
     }
 
@@ -258,6 +277,29 @@ public sealed class Mt5ManagerClient : IDisposable
         {
             yield return path;
         }
+    }
+
+
+    private static string? GetNativeManagerDllPath()
+    {
+        var baseDirectory = AppContext.BaseDirectory;
+        var candidateNames = new[]
+        {
+            "MT5APIManager64.dll",
+            "MT5APIManager.dll"
+        };
+
+        foreach (var candidateName in candidateNames)
+        {
+            var path = Path.Combine(baseDirectory, candidateName);
+            if (File.Exists(path))
+            {
+                return path;
+            }
+        }
+
+        return Directory.EnumerateFiles(baseDirectory, "MT5APIManager*.dll", SearchOption.AllDirectories)
+            .FirstOrDefault();
     }
 
     private static Type GetFactoryType(Assembly assembly)
