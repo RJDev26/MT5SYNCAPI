@@ -1,25 +1,17 @@
 using System.Reflection;
-using System.Runtime.Loader;
 using System.Text.Json;
+using MetaQuotes.MT5CommonAPI;
+using MetaQuotes.MT5ManagerAPI;
 
 namespace OTS.WorkflowService;
 
-/// <summary>
-/// Thin adapter over the MetaQuotes MT5 Manager .NET API.
-///
-/// The NuGet package exposes native-style classes (CMTManagerAPIFactory/CIMTManager)
-/// and methods that often use return codes plus out parameters. Reflection keeps this
-/// worker buildable in environments where the native Windows Manager API runtime is not
-/// installed, while still calling the real Manager API methods at runtime.
-/// </summary>
 public sealed class Mt5ManagerClient : IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = false };
 
     private readonly Mt5ManagerOptions _options;
     private readonly ILogger<Mt5ManagerClient> _logger;
-    private object? _factory;
-    private object? _manager;
+    private CIMTManagerAPI? _manager;
     private bool _connected;
 
     public Mt5ManagerClient(Mt5ManagerOptions options, ILogger<Mt5ManagerClient> logger)
@@ -35,27 +27,28 @@ public sealed class Mt5ManagerClient : IDisposable
             return;
         }
 
-        var assembly = LoadManagerAssembly();
-        var factoryType = GetFactoryType(assembly);
-        _factory = Activator.CreateInstance(factoryType) ?? factoryType;
+        var result = SMTManagerAPIFactory.Initialize(null);
+        ThrowIfFailed(result, "Initialize MT5 Manager API");
 
-        InitializeFactory(_factory);
-        var version = ReadApiVersionConstant(_factory) ?? 0;
-        _manager = CreateManager(_factory, version);
+        _manager = SMTManagerAPIFactory.CreateManager(SMTManagerAPIFactory.ManagerAPIVersion, out result);
+        ThrowIfFailed(result, "Create MT5 manager instance");
 
-        var connectResult = Invoke(
-            _manager,
-            "Connect",
+        if (_manager is null)
+        {
+            throw new InvalidOperationException("MT5 Manager API returned MT_RET_OK but did not create a manager instance.");
+        }
+
+        result = _manager.Connect(
             _options.Server,
             _options.Login,
             _options.Password,
             null,
-            (ulong)_options.PumpingMode,
+            CIMTManagerAPI.EnPumpModes.PUMP_MODE_FULL,
             _options.TimeoutMilliseconds);
-        EnsureOk(connectResult, "Connect");
+        ThrowIfFailed(result, $"Connect to MT5 server {_options.Server} as manager {_options.Login}");
 
         _connected = true;
-        _logger.LogInformation("Connected to MT5 Manager server {Server} as login {Login}.", _options.Server, _options.Login);
+        _logger.LogInformation("Connected to MT5 Manager server {Server} as manager login {Login}.", _options.Server, _options.Login);
     }
 
     public Mt5Snapshot GetTradeAndOrderSnapshot()
@@ -63,7 +56,7 @@ public sealed class Mt5ManagerClient : IDisposable
         Connect();
         ArgumentNullException.ThrowIfNull(_manager);
 
-        var orders = ReadCurrentOrders(_manager).Take((int)_options.MaxRows).ToList();
+        var orders = ReadOrders(_manager).Take((int)_options.MaxRows).ToList();
         var deals = ReadDeals(_manager).Take((int)_options.MaxRows).ToList();
 
         return new Mt5Snapshot(orders, deals);
@@ -73,117 +66,82 @@ public sealed class Mt5ManagerClient : IDisposable
     {
         if (_manager is not null)
         {
-            InvokeIfExists(_manager, "Disconnect");
-            InvokeIfExists(_manager, "Release");
-            (_manager as IDisposable)?.Dispose();
+            _manager.Disconnect();
+            _manager.Dispose();
+            _manager = null;
         }
 
-        _manager = null;
         _connected = false;
-
-        if (_factory is not null)
-        {
-            InvokeIfExists(_factory, "Shutdown");
-        }
-
-        _factory = null;
+        SMTManagerAPIFactory.Shutdown();
     }
 
-    private IEnumerable<string> ReadCurrentOrders(object manager)
+    private IEnumerable<string> ReadOrders(CIMTManagerAPI manager)
     {
-        foreach (var row in ReadCollectionFromCreateArrayRequest(manager, "OrderCreateArray", "OrderRequestByGroup", _options.OrderGroupMask))
+        var orders = manager.OrderCreateArray();
+        if (orders is null)
         {
-            yield return row;
+            throw new InvalidOperationException("MT5 Manager API could not create an order array.");
         }
 
-        foreach (var row in ReadCollectionByTotalAndNext(manager, "OrderGetTotal", "OrderGetNext"))
+        try
         {
-            yield return row;
+            var result = manager.OrderRequestByGroup(_options.OrderGroupMask, orders);
+            ThrowIfFailed(result, $"Request MT5 open orders for group mask '{_options.OrderGroupMask}'");
+
+            foreach (var item in ReadArrayItems(orders))
+            {
+                yield return item;
+            }
         }
-    }
-
-    private IEnumerable<string> ReadDeals(object manager)
-    {
-        if (_options.DealHistoryLogin is null)
+        finally
         {
-            _logger.LogInformation("Mt5Manager:DealHistoryLogin is not configured, so deal history request is skipped.");
-            yield break;
-        }
-
-        var to = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var from = DateTimeOffset.UtcNow.AddDays(-Math.Max(1, _options.DealHistoryDays)).ToUnixTimeSeconds();
-
-        foreach (var row in ReadCollectionFromCreateArrayRequest(
-                     manager,
-                     "DealCreateArray",
-                     "DealRequest",
-                     _options.DealHistoryLogin.Value,
-                     from,
-                     to))
-        {
-            yield return row;
+            orders.Release();
         }
     }
 
-    private static IEnumerable<string> ReadCollectionFromCreateArrayRequest(object manager, string createArrayMethod, string requestMethod, params object?[] requestArguments)
+    private IEnumerable<string> ReadDeals(CIMTManagerAPI manager)
     {
-        var array = InvokeIfExists(manager, createArrayMethod);
-        if (array is null)
+        var deals = manager.DealCreateArray();
+        if (deals is null)
         {
-            yield break;
+            throw new InvalidOperationException("MT5 Manager API could not create a deal array.");
         }
 
-        var arguments = requestArguments.Concat(new[] { array }).ToArray();
-        EnsureOk(Invoke(manager, requestMethod, arguments), requestMethod);
-
-        foreach (var row in ReadArrayLikeObject(array))
+        try
         {
-            yield return row;
-        }
+            var to = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var from = DateTimeOffset.UtcNow.AddDays(-Math.Max(1, _options.DealHistoryDays)).ToUnixTimeSeconds();
+            var result = _options.DealHistoryLogin is null
+                ? manager.DealRequestByGroup(_options.OrderGroupMask, from, to, deals)
+                : manager.DealRequest(_options.DealHistoryLogin.Value, from, to, deals);
 
-        InvokeIfExists(array, "Release");
+            ThrowIfFailed(result, _options.DealHistoryLogin is null
+                ? $"Request MT5 deals for group mask '{_options.OrderGroupMask}'"
+                : $"Request MT5 deals for login {_options.DealHistoryLogin.Value}");
+
+            foreach (var item in ReadArrayItems(deals))
+            {
+                yield return item;
+            }
+        }
+        finally
+        {
+            deals.Release();
+        }
     }
 
-    private static IEnumerable<string> ReadCollectionByTotalAndNext(object manager, string totalMethod, string nextMethod)
+    private static IEnumerable<string> ReadArrayItems(object array)
     {
-        var totalObject = InvokeIfExists(manager, totalMethod);
-        if (totalObject is null || !TryToUInt(totalObject, out var total))
+        var total = Convert.ToUInt32(array.GetType().GetMethod("Total")?.Invoke(array, null) ?? 0u);
+        var nextMethod = array.GetType().GetMethod("Next") ?? array.GetType().GetMethod("Get");
+        if (nextMethod is null)
         {
             yield break;
         }
 
         for (uint index = 0; index < total; index++)
         {
-            var next = InvokeIfExists(manager, nextMethod, index);
-            if (next is not null)
-            {
-                yield return SerializeObject(next);
-            }
-        }
-    }
-
-    private static IEnumerable<string> ReadArrayLikeObject(object array)
-    {
-        if (array is System.Collections.IEnumerable enumerable && array is not string)
-        {
-            foreach (var item in enumerable)
-            {
-                yield return SerializeObject(item);
-            }
-
-            yield break;
-        }
-
-        var totalObject = InvokeIfExists(array, "Total");
-        if (totalObject is null || !TryToUInt(totalObject, out var total))
-        {
-            yield return SerializeObject(array);
-            yield break;
-        }
-
-        for (uint index = 0; index < total; index++)
-        {
-            var item = InvokeIfExists(array, "Next", index) ?? InvokeIfExists(array, "Get", index);
+            var item = nextMethod.Invoke(array, new object[] { index });
             if (item is not null)
             {
                 yield return SerializeObject(item);
@@ -191,436 +149,20 @@ public sealed class Mt5ManagerClient : IDisposable
         }
     }
 
-    private static void InitializeFactory(object factory)
+    private static void ThrowIfFailed(MTRetCode result, string operation)
     {
-        var nativeDllPath = GetNativeManagerDllPath();
-        var initializeResults = new[]
-            {
-                nativeDllPath is null ? null : InvokeIfExists(factory, "Initialize", nativeDllPath),
-                InvokeIfExists(factory, "Initialize", (string?)null),
-                InvokeIfExists(factory, "Initialize"),
-                nativeDllPath is null ? null : InvokeIfExists(factory, "Init", nativeDllPath),
-                InvokeIfExists(factory, "Init", (string?)null),
-                InvokeIfExists(factory, "Init")
-            }
-            .Where(result => result is not null)
-            .ToList();
-
-        if (initializeResults.Count == 0 || initializeResults.Any(IsOkReturnCode))
+        if (result != MTRetCode.MT_RET_OK)
         {
-            return;
-        }
-
-        // The MetaQuotes NuGet package variants used in deployments can return
-        // MT_RET_ERROR from Initialize when the native DLL is already loaded or when
-        // initialization is not required. Continue to Version/CreateManager/Connect,
-        // because those calls are the real validation for getting orders and deals
-        // with manager credentials.
-    }
-
-    private static object CreateManager(object factory, uint version)
-    {
-        if (version > 0)
-        {
-            var manager = TryCreateManager(factory, version);
-            if (manager is not null)
-            {
-                return manager;
-            }
-        }
-
-        return TryCreateManager(factory)
-            ?? TryCreateManagerWithoutOut(factory, version)
-            ?? TryCreateManagerWithoutOut(factory)
-            ?? throw new InvalidOperationException("Unable to create an MT5 manager instance from the MetaQuotes Manager API factory.");
-    }
-
-    private static object? TryCreateManager(object factory, params object?[] arguments)
-    {
-        try
-        {
-            var invocation = InvokeWithOut(factory, "CreateManager", typeof(object), arguments);
-            var outValue = invocation.OutValues.FirstOrDefault(v => v is not null);
-
-            if (LooksLikeReturnCode(invocation.ReturnValue) && outValue is not null)
-            {
-                EnsureOk(invocation.ReturnValue, "CreateManager");
-                return outValue;
-            }
-
-            if (LooksLikeReturnCode(outValue))
-            {
-                EnsureOk(outValue, "CreateManager");
-                return invocation.ReturnValue;
-            }
-
-            return invocation.ReturnValue ?? outValue;
-        }
-        catch
-        {
-            return null;
+            throw new InvalidOperationException($"{operation} failed with MT5 return code {result}.");
         }
     }
 
-    private static object? TryCreateManagerWithoutOut(object factory, params object?[] arguments)
+    private static string SerializeObject(object value)
     {
-        try
-        {
-            return Invoke(factory, "CreateManager", arguments);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private static uint? ReadApiVersionConstant(object factory)
-    {
-        var type = factory as Type ?? factory.GetType();
-        var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static;
-
-        foreach (var property in type.GetProperties(flags).Where(p => IsVersionMember(p.Name)))
-        {
-            if (TryConvertToUInt(property.GetValue(factory is Type ? null : factory), out var version))
-            {
-                return version;
-            }
-        }
-
-        foreach (var field in type.GetFields(flags).Where(f => IsVersionMember(f.Name)))
-        {
-            if (TryConvertToUInt(field.GetValue(factory is Type ? null : factory), out var version))
-            {
-                return version;
-            }
-        }
-
-        return null;
-    }
-
-    private static bool IsVersionMember(string name)
-    {
-        return name.Contains("Version", StringComparison.OrdinalIgnoreCase)
-            && name.Contains("API", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool TryConvertToUInt(object? value, out uint result)
-    {
-        try
-        {
-            if (value is null)
-            {
-                result = 0;
-                return false;
-            }
-
-            result = Convert.ToUInt32(value);
-            return true;
-        }
-        catch
-        {
-            result = 0;
-            return false;
-        }
-    }
-
-    private static Assembly LoadManagerAssembly()
-    {
-        var loadedAssembly = AppDomain.CurrentDomain.GetAssemblies()
-            .FirstOrDefault(a => a.GetName().Name?.Contains("MT5ManagerAPI", StringComparison.OrdinalIgnoreCase) == true);
-        if (loadedAssembly is not null)
-        {
-            return loadedAssembly;
-        }
-
-        foreach (var assemblyPath in GetManagerAssemblyCandidates())
-        {
-            try
-            {
-                return AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
-            }
-            catch (FileLoadException)
-            {
-                return Assembly.LoadFrom(assemblyPath);
-            }
-            catch (BadImageFormatException)
-            {
-                // Ignore native helper DLLs; continue until the managed wrapper DLL is found.
-            }
-        }
-
-        throw new FileNotFoundException(
-            "Unable to locate the managed MT5 Manager API assembly. Ensure the MetaQuotes.MT5ManagerAPI64-net2.0 package DLLs are copied to the WorkflowService output folder.");
-    }
-
-    private static IEnumerable<string> GetManagerAssemblyCandidates()
-    {
-        var baseDirectory = AppContext.BaseDirectory;
-        var candidateNames = new[]
-        {
-            "MetaQuotes.MT5ManagerAPI64.dll",
-            "MetaQuotes.MT5ManagerAPI.dll",
-            "MT5ManagerAPI64.dll",
-            "MT5ManagerAPI.dll"
-        };
-
-        foreach (var candidateName in candidateNames)
-        {
-            var path = Path.Combine(baseDirectory, candidateName);
-            if (File.Exists(path))
-            {
-                yield return path;
-            }
-        }
-
-        foreach (var path in Directory.EnumerateFiles(baseDirectory, "*MT5*Manager*API*.dll", SearchOption.AllDirectories))
-        {
-            yield return path;
-        }
-    }
-
-
-    private static string? GetNativeManagerDllPath()
-    {
-        var baseDirectory = AppContext.BaseDirectory;
-        var candidateNames = new[]
-        {
-            "MT5APIManager64.dll",
-            "MT5APIManager.dll"
-        };
-
-        foreach (var candidateName in candidateNames)
-        {
-            var path = Path.Combine(baseDirectory, candidateName);
-            if (File.Exists(path))
-            {
-                return path;
-            }
-        }
-
-        return Directory.EnumerateFiles(baseDirectory, "MT5APIManager*.dll", SearchOption.AllDirectories)
-            .FirstOrDefault();
-    }
-
-    private static Type GetFactoryType(Assembly assembly)
-    {
-        return GetFactoryTypeOrDefault(assembly)
-            ?? throw new InvalidOperationException("Unable to find CMTManagerAPIFactory in the MetaQuotes MT5 Manager API assembly.");
-    }
-
-    private static Type? GetFactoryTypeOrDefault(Assembly assembly)
-    {
-        var types = assembly.GetTypes();
-        return types.FirstOrDefault(t => string.Equals(t.Name, "CMTManagerAPIFactory", StringComparison.OrdinalIgnoreCase) && HasMethod(t, "CreateManager"))
-            ?? types.FirstOrDefault(t => t.Name.Contains("ManagerAPIFactory", StringComparison.OrdinalIgnoreCase) && HasMethod(t, "CreateManager"))
-            ?? types.FirstOrDefault(t => t.Name.Contains("ManagerFactory", StringComparison.OrdinalIgnoreCase) && HasMethod(t, "CreateManager"));
-    }
-
-    private static bool HasMethod(Type type, string methodName)
-    {
-        return type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
-            .Any(m => string.Equals(m.Name, methodName, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static object? InvokeIfExists(object target, string methodName, params object?[] arguments)
-    {
-        try
-        {
-            return Invoke(target, methodName, arguments);
-        }
-        catch (MissingMethodException)
-        {
-            return null;
-        }
-    }
-
-    private static object? Invoke(object target, string methodName, params object?[] arguments)
-    {
-        var type = target as Type ?? target.GetType();
-        var method = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
-            .FirstOrDefault(m => string.Equals(m.Name, methodName, StringComparison.OrdinalIgnoreCase) && ParametersMatch(m.GetParameters(), arguments));
-
-        if (method is null)
-        {
-            throw new MissingMethodException(type.FullName, methodName);
-        }
-
-        return method.Invoke(target is Type ? null : target, ConvertArguments(method.GetParameters(), arguments));
-    }
-
-    private static InvocationResult InvokeWithOut(object target, string methodName, Type outType, params object?[] inputArguments)
-    {
-        var type = target as Type ?? target.GetType();
-        var method = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
-            .FirstOrDefault(m => string.Equals(m.Name, methodName, StringComparison.OrdinalIgnoreCase)
-                && m.GetParameters().Length == inputArguments.Length + 1
-                && m.GetParameters().Last().ParameterType.IsByRef);
-
-        if (method is null)
-        {
-            throw new MissingMethodException(type.FullName, methodName);
-        }
-
-        var outParameterType = method.GetParameters().Last().ParameterType.GetElementType() ?? outType;
-        var arguments = inputArguments.Concat(new[] { GetDefault(outParameterType) }).ToArray();
-        var invokeArguments = ConvertArguments(method.GetParameters(), arguments);
-        var returnValue = method.Invoke(target is Type ? null : target, invokeArguments);
-        return new InvocationResult(returnValue, invokeArguments.Skip(inputArguments.Length).ToArray());
-    }
-
-
-    private static object?[] ConvertArguments(ParameterInfo[] parameters, object?[] arguments)
-    {
-        var converted = new object?[arguments.Length];
-        for (var i = 0; i < arguments.Length; i++)
-        {
-            if (arguments[i] is null || parameters[i].ParameterType.IsByRef)
-            {
-                converted[i] = arguments[i];
-                continue;
-            }
-
-            var parameterType = Nullable.GetUnderlyingType(parameters[i].ParameterType) ?? parameters[i].ParameterType;
-            converted[i] = parameterType.IsInstanceOfType(arguments[i])
-                ? arguments[i]
-                : Convert.ChangeType(arguments[i], parameterType, System.Globalization.CultureInfo.InvariantCulture);
-        }
-
-        return converted;
-    }
-
-    private static bool ParametersMatch(ParameterInfo[] parameters, object?[] arguments)
-    {
-        if (parameters.Length != arguments.Length)
-        {
-            return false;
-        }
-
-        for (var i = 0; i < parameters.Length; i++)
-        {
-            if (arguments[i] is null || parameters[i].ParameterType.IsByRef)
-            {
-                continue;
-            }
-
-            var parameterType = Nullable.GetUnderlyingType(parameters[i].ParameterType) ?? parameters[i].ParameterType;
-            if (!parameterType.IsInstanceOfType(arguments[i]) && !CanConvert(arguments[i]!, parameterType))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static bool CanConvert(object value, Type type)
-    {
-        return value is IConvertible && typeof(IConvertible).IsAssignableFrom(type);
-    }
-
-
-
-    private static bool LooksLikeReturnCode(object? value)
-    {
-        if (value is null)
-        {
-            return false;
-        }
-
-        var type = value.GetType();
-        return type.IsEnum || value is bool || IsNumericType(type);
-    }
-
-    private static bool IsNumericType(Type type)
-    {
-        type = Nullable.GetUnderlyingType(type) ?? type;
-        return type == typeof(byte)
-            || type == typeof(sbyte)
-            || type == typeof(short)
-            || type == typeof(ushort)
-            || type == typeof(int)
-            || type == typeof(uint)
-            || type == typeof(long)
-            || type == typeof(ulong);
-    }
-
-    private static bool IsOkReturnCode(object? returnValue)
-    {
-        if (returnValue is null)
-        {
-            return true;
-        }
-
-        if (returnValue is bool boolResult)
-        {
-            return boolResult;
-        }
-
-        if (returnValue is IConvertible convertible)
-        {
-            return convertible.ToInt64(System.Globalization.CultureInfo.InvariantCulture) == 0;
-        }
-
-        return true;
-    }
-
-    private static void EnsureOk(object? returnValue, string operation)
-    {
-        if (returnValue is null)
-        {
-            return;
-        }
-
-        if (returnValue is bool boolResult)
-        {
-            if (!boolResult)
-            {
-                throw new InvalidOperationException($"MT5 Manager API {operation} returned false.");
-            }
-
-            return;
-        }
-
-        if (returnValue is IConvertible convertible)
-        {
-            var code = convertible.ToInt64(System.Globalization.CultureInfo.InvariantCulture);
-            if (code != 0)
-            {
-                throw new InvalidOperationException($"MT5 Manager API {operation} failed with return code {returnValue}.");
-            }
-        }
-    }
-
-    private static bool TryToUInt(object value, out uint result)
-    {
-        try
-        {
-            result = Convert.ToUInt32(value);
-            return true;
-        }
-        catch
-        {
-            result = 0;
-            return false;
-        }
-    }
-
-    private static object? GetDefault(Type type)
-    {
-        return type.IsValueType ? Activator.CreateInstance(type) : null;
-    }
-
-    private static string SerializeObject(object? value)
-    {
-        if (value is null)
-        {
-            return "null";
-        }
-
         var members = value.GetType()
             .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Where(m => m.GetParameters().Length == 0 && m.ReturnType != typeof(void) && !m.IsSpecialName && m.Name != "GetHashCode")
-            .ToDictionary(m => m.Name, m => SafeInvoke(value, m));
+            .Where(method => method.GetParameters().Length == 0 && method.ReturnType != typeof(void) && !method.IsSpecialName && method.Name != nameof(GetHashCode))
+            .ToDictionary(method => method.Name, method => SafeInvoke(value, method));
 
         return members.Count == 0
             ? JsonSerializer.Serialize(value, value.GetType(), JsonOptions)
@@ -638,8 +180,6 @@ public sealed class Mt5ManagerClient : IDisposable
             return null;
         }
     }
-
-    private sealed record InvocationResult(object? ReturnValue, object?[] OutValues);
 }
 
 public sealed record Mt5Snapshot(IReadOnlyList<string> Orders, IReadOnlyList<string> Deals);
