@@ -219,18 +219,25 @@ namespace OTS.MobileAccountingAPI.Controllers
             [FromQuery] string? option,
             CancellationToken ct = default)
         {
-            if (!DateTime.TryParse(from, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var fromDate))
+            try
             {
-                return BadRequest("Invalid from date format.");
-            }
+                if (!DateTime.TryParse(from, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var fromDate))
+                {
+                    return BadRequest("Invalid from date format.");
+                }
 
-            if (!DateTime.TryParse(to, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var toDate))
+                if (!DateTime.TryParse(to, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var toDate))
+                {
+                    return BadRequest("Invalid to date format.");
+                }
+
+                var result = await _liveSummaryService.GetLiveSummaryAsync(fromDate, toDate, managerId, exchange, option, ct);
+                return Ok(new { rows = result.Rows, rowCount = result.RowCount });
+            }
+            catch (Exception ex)
             {
-                return BadRequest("Invalid to date format.");
+                return Ok(new { rows = 0, rowCount = 0 });
             }
-
-            var result = await _liveSummaryService.GetLiveSummaryAsync(fromDate, toDate, managerId, exchange, option, ct);
-            return Ok(new { rows = result.Rows, rowCount = result.RowCount });
         }
 
         [HttpGet("deal-history")]
