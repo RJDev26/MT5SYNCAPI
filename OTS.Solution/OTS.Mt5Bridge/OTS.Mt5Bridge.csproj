@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    net48 sidecar that hosts the native MT5 Manager API (x64 mixed-mode).
+    The .NET 8 worker (OTS.WorkflowService) talks to this process over
+    localhost HTTP instead of loading the native DLLs directly.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <RootNamespace>OTS.Mt5Bridge</RootNamespace>
+    <AssemblyName>OTS.Mt5Bridge</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Native MT5 Manager API wrapper (CLR2 mixed-mode, x64). -->
+    <PackageReference Include="MetaQuotes.MT5ManagerAPI64-net2.0" Version="1755.0.0" />
+    <!-- Minimal self-hosted HTTP API on net48. -->
+    <PackageReference Include="Microsoft.AspNet.WebApi.OwinSelfHost" Version="5.3.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+</Project>
