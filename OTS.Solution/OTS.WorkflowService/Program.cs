@@ -8,9 +8,17 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services.Configure<Mt5SyncOptions>(
     builder.Configuration.GetSection(Mt5SyncOptions.SectionName));
 
-// Register the MT5 data source. Swap StubMt5SyncService for the real
-// Manager API implementation once the interop layer is available.
-builder.Services.AddSingleton<IMt5SyncService, StubMt5SyncService>();
+// The native MT5 Manager API runs in the net48 OTS.Mt5Bridge process.
+// This worker reaches it over localhost HTTP via a typed client.
+var bridgeBaseUrl =
+    builder.Configuration.GetSection(Mt5SyncOptions.SectionName)["BridgeBaseUrl"]
+    ?? "http://127.0.0.1:5099";
+
+builder.Services.AddHttpClient<IMt5SyncService, BridgeMt5SyncService>(client =>
+{
+    client.BaseAddress = new Uri(bridgeBaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
 
 builder.Services.AddHostedService<Worker>();
 
