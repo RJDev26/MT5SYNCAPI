@@ -220,17 +220,109 @@ public sealed class Mt5ManagerClient : IDisposable
 
     private static uint ReadApiVersion(object factory)
     {
-        var invocation = InvokeWithOut(factory, "Version", typeof(uint));
-        EnsureOk(invocation.ReturnValue, "Version");
-        return invocation.OutValues.OfType<uint>().FirstOrDefault();
+        try
+        {
+            var invocation = InvokeWithOut(factory, "Version", typeof(uint));
+            EnsureOk(invocation.ReturnValue, "Version");
+            return invocation.OutValues.OfType<uint>().FirstOrDefault();
+        }
+        catch (MissingMethodException)
+        {
+            return ReadApiVersionConstant(factory) ?? 0;
+        }
     }
 
     private static object CreateManager(object factory, uint version)
     {
-        var invocation = InvokeWithOut(factory, "CreateManager", typeof(object), version);
-        EnsureOk(invocation.OutValues.FirstOrDefault(), "CreateManager");
-        return invocation.ReturnValue
-            ?? throw new InvalidOperationException("CreateManager succeeded but did not return a manager instance.");
+        if (version > 0)
+        {
+            var manager = TryCreateManager(factory, version);
+            if (manager is not null)
+            {
+                return manager;
+            }
+        }
+
+        return TryCreateManager(factory)
+            ?? TryCreateManagerWithoutOut(factory, version)
+            ?? TryCreateManagerWithoutOut(factory)
+            ?? throw new InvalidOperationException("Unable to create an MT5 manager instance from the MetaQuotes Manager API factory.");
+    }
+
+    private static object? TryCreateManager(object factory, params object?[] arguments)
+    {
+        try
+        {
+            var invocation = InvokeWithOut(factory, "CreateManager", typeof(object), arguments);
+            EnsureOk(invocation.OutValues.FirstOrDefault(), "CreateManager");
+            return invocation.ReturnValue;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static object? TryCreateManagerWithoutOut(object factory, params object?[] arguments)
+    {
+        try
+        {
+            return Invoke(factory, "CreateManager", arguments);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static uint? ReadApiVersionConstant(object factory)
+    {
+        var type = factory as Type ?? factory.GetType();
+        var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static;
+
+        foreach (var property in type.GetProperties(flags).Where(p => IsVersionMember(p.Name)))
+        {
+            if (TryConvertToUInt(property.GetValue(factory is Type ? null : factory), out var version))
+            {
+                return version;
+            }
+        }
+
+        foreach (var field in type.GetFields(flags).Where(f => IsVersionMember(f.Name)))
+        {
+            if (TryConvertToUInt(field.GetValue(factory is Type ? null : factory), out var version))
+            {
+                return version;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsVersionMember(string name)
+    {
+        return name.Contains("Version", StringComparison.OrdinalIgnoreCase)
+            && name.Contains("API", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryConvertToUInt(object? value, out uint result)
+    {
+        try
+        {
+            if (value is null)
+            {
+                result = 0;
+                return false;
+            }
+
+            result = Convert.ToUInt32(value);
+            return true;
+        }
+        catch
+        {
+            result = 0;
+            return false;
+        }
     }
 
     private static Assembly LoadManagerAssembly()
