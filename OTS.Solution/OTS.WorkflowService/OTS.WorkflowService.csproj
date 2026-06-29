@@ -9,5 +9,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="MetaQuotes.MT5ManagerAPI64-net2.0" Version="1755.0.0" />
   </ItemGroup>
 </Project>
