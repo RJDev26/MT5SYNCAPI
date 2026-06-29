@@ -16,7 +16,7 @@ namespace MobileAccounting.Repositories.Implementations
             _db = db;
         }
 
-        public async Task<LiveDealResultVM> GetLiveDealsAsync(DateOnly onDate, DateTime? sinceTime, string? symbol, string? action, int pageSize, bool asc, CancellationToken ct)
+        public async Task<LiveDealResultVM> GetLiveDealsAsync(DateOnly onDate, DateTime? sinceTime, string? symbol, string? action, int pageSize, bool asc, int userId, CancellationToken ct)
         {
             var parameters = new List<DbParameter>
             {
@@ -24,7 +24,9 @@ namespace MobileAccounting.Repositories.Implementations
                 new DbParameter("SinceTime", ParameterDirection.Input, sinceTime),
                 new DbParameter("Symbol", ParameterDirection.Input, symbol),
                 new DbParameter("Action", ParameterDirection.Input, action),
-                new DbParameter("PageSize", ParameterDirection.Input, pageSize)
+                new DbParameter("PageSize", ParameterDirection.Input, pageSize),
+                // Restrict the result set to the requested user when executing usp_GetLiveDeals
+                new DbParameter("UserId", ParameterDirection.Input, userId)
             };
 
             var (rows, meta) = await _db.ExecuteMultipleAsync<LiveDealVM, LiveDealMetaVM>("usp_GetLiveDeals", parameters);

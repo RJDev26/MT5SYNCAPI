@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using OTS.Service.Interfaces;
 
@@ -39,9 +40,15 @@ namespace OTS.MobileAccountingAPI.Controllers
             [FromQuery] string? symbol,
             [FromQuery] string? action,
             [FromQuery] int? pageSize,
+            [FromQuery(Name = "userId")] int? userId,
             [FromQuery] bool asc = false,
             CancellationToken ct = default)
         {
+            if (!TryResolveUserId(userId, out var effectiveUserId))
+            {
+                return Unauthorized();
+            }
+
             if (!DateOnly.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var onDate))
             {
                 return BadRequest("Invalid date format.");
@@ -58,7 +65,7 @@ namespace OTS.MobileAccountingAPI.Controllers
                 parsedSinceTime = dt;
             }
 
-            var result = await _liveDealService.GetLiveDealsAsync(onDate, parsedSinceTime, symbol, action, pageSize ?? 500, asc, ct);
+            var result = await _liveDealService.GetLiveDealsAsync(onDate, parsedSinceTime, symbol, action, pageSize ?? 500, asc, effectiveUserId, ct);
             return Ok(new { rows = result.Rows, maxTime = result.MaxTime, rowCount = result.TotalRows });
         }
 
@@ -107,14 +114,33 @@ namespace OTS.MobileAccountingAPI.Controllers
             return false;
         }
 
+        private bool TryResolveUserId(int? requestedUserId, out int userId)
+        {
+            userId = default;
+            if (requestedUserId.HasValue)
+            {
+                userId = requestedUserId.Value;
+                return true;
+            }
+
+            var userIdClaim = User.FindFirst("userId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
+            return userIdClaim != null && int.TryParse(userIdClaim.Value, out userId);
+        }
+
         [HttpGet("orders-snapshot")]
         public async Task<IActionResult> GetOrdersSnapshot(
             [FromQuery] string? symbol,
             [FromQuery] long? orderId,
             [FromQuery] int? top,
+            [FromQuery(Name = "userId")] int? userId,
             CancellationToken ct = default)
         {
-            var result = await _orderSnapshotService.GetOrdersSnapshotAsync(symbol, orderId, top, ct);
+            if (!TryResolveUserId(userId, out var effectiveUserId))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _orderSnapshotService.GetOrdersSnapshotAsync(symbol, orderId, top, effectiveUserId, ct);
             return Ok(new { rows = result.Rows, maxTime = result.MaxTime, rowCount = result.TotalRows });
         }
 

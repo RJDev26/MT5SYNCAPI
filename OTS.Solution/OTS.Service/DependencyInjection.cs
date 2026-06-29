@@ -60,6 +60,7 @@ namespace OTS.Service
             services.AddScoped<ILiveSummaryService, LiveSummaryService>();
             services.AddScoped<IDealHistoryService, DealHistoryService>();
             services.AddScoped<IMasterService, MasterService>();
+            services.AddScoped<IUserService, UserService>();
 
             return services;
         }
