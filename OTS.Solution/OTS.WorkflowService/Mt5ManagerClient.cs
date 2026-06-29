@@ -194,16 +194,20 @@ public sealed class Mt5ManagerClient : IDisposable
     private static void InitializeFactory(object factory)
     {
         var nativeDllPath = GetNativeManagerDllPath();
-        object? result;
-        try
+        object? result = InvokeIfExists(factory, "Initialize", nativeDllPath ?? AppContext.BaseDirectory)
+            ?? InvokeIfExists(factory, "Initialize", (string?)null)
+            ?? InvokeIfExists(factory, "Initialize")
+            ?? InvokeIfExists(factory, "Init", nativeDllPath ?? AppContext.BaseDirectory)
+            ?? InvokeIfExists(factory, "Init", (string?)null)
+            ?? InvokeIfExists(factory, "Init");
+
+        if (result is null)
         {
-            result = nativeDllPath is null
-                ? Invoke(factory, "Initialize", (string?)null)
-                : Invoke(factory, "Initialize", nativeDllPath);
-        }
-        catch (MissingMethodException)
-        {
-            result = Invoke(factory, "Initialize");
+            // Some NuGet wrappers pre-load the native Manager API from the package output
+            // and expose only CreateManager/Version. Do not fail the workflow here; the
+            // following Version/CreateManager/Connect calls will validate whether the
+            // package can actually create a manager session.
+            return;
         }
 
         EnsureOk(result, "Initialize");
@@ -310,7 +314,16 @@ public sealed class Mt5ManagerClient : IDisposable
 
     private static Type? GetFactoryTypeOrDefault(Assembly assembly)
     {
-        return assembly.GetTypes().FirstOrDefault(t => string.Equals(t.Name, "CMTManagerAPIFactory", StringComparison.OrdinalIgnoreCase));
+        var types = assembly.GetTypes();
+        return types.FirstOrDefault(t => string.Equals(t.Name, "CMTManagerAPIFactory", StringComparison.OrdinalIgnoreCase) && HasMethod(t, "CreateManager"))
+            ?? types.FirstOrDefault(t => t.Name.Contains("ManagerAPIFactory", StringComparison.OrdinalIgnoreCase) && HasMethod(t, "CreateManager"))
+            ?? types.FirstOrDefault(t => t.Name.Contains("ManagerFactory", StringComparison.OrdinalIgnoreCase) && HasMethod(t, "CreateManager"));
+    }
+
+    private static bool HasMethod(Type type, string methodName)
+    {
+        return type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
+            .Any(m => string.Equals(m.Name, methodName, StringComparison.OrdinalIgnoreCase));
     }
 
     private static object? InvokeIfExists(object target, string methodName, params object?[] arguments)
