@@ -8,17 +8,17 @@ namespace OTS.WorkflowService.Options
     {
         public const string SectionName = "Mt5Sync";
 
-        /// <summary>MT5 server address (IP or named access server).</summary>
-        public string Server { get; set; } = string.Empty;
-
-        /// <summary>Manager / account login id.</summary>
-        public ulong Login { get; set; }
+        /// <summary>
+        /// Base URL of the net48 OTS.Mt5Bridge process that owns the native
+        /// MT5 Manager API connection.
+        /// </summary>
+        public string BridgeBaseUrl { get; set; } = "http://127.0.0.1:5099";
 
         /// <summary>
-        /// Account password. Do NOT store real secrets in appsettings.json.
-        /// Use user-secrets, environment variables, or a secret manager.
+        /// Comma-separated MT5 logins to sync. Leave "0" for every login the
+        /// manager account can see.
         /// </summary>
-        public string Password { get; set; } = string.Empty;
+        public string Logins { get; set; } = "0";
 
         /// <summary>How often the worker polls MT5 for new deals/orders.</summary>
         public int PollIntervalSeconds { get; set; } = 30;
