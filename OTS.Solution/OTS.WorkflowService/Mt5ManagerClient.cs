@@ -85,7 +85,7 @@ public sealed class Mt5ManagerClient : IDisposable
 
         try
         {
-            var result = manager.OrderRequestByGroup(_options.OrderGroupMask, orders);
+            var result = InvokeMt5Method(manager, new[] { "OrderRequestByGroup", "OrderGetByGroup", "OrderGet" }, _options.OrderGroupMask, orders);
             ThrowIfFailed(result, $"Request MT5 open orders for group mask '{_options.OrderGroupMask}'");
 
             foreach (var item in ReadArrayItems(orders))
@@ -112,8 +112,8 @@ public sealed class Mt5ManagerClient : IDisposable
             var to = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             var from = DateTimeOffset.UtcNow.AddDays(-Math.Max(1, _options.DealHistoryDays)).ToUnixTimeSeconds();
             var result = _options.DealHistoryLogin is null
-                ? manager.DealRequestByGroup(_options.OrderGroupMask, from, to, deals)
-                : manager.DealRequest(_options.DealHistoryLogin.Value, from, to, deals);
+                ? InvokeMt5Method(manager, new[] { "DealRequestByGroup", "DealGetByGroup", "DealRequest", "DealGet" }, _options.OrderGroupMask, from, to, deals)
+                : InvokeMt5Method(manager, new[] { "DealRequest", "DealGet" }, _options.DealHistoryLogin.Value, from, to, deals);
 
             ThrowIfFailed(result, _options.DealHistoryLogin is null
                 ? $"Request MT5 deals for group mask '{_options.OrderGroupMask}'"
@@ -128,6 +128,89 @@ public sealed class Mt5ManagerClient : IDisposable
         {
             deals.Release();
         }
+    }
+
+
+    private static MTRetCode InvokeMt5Method(object target, IEnumerable<string> methodNames, params object[] arguments)
+    {
+        foreach (var methodName in methodNames)
+        {
+            var method = target.GetType()
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(candidate => string.Equals(candidate.Name, methodName, StringComparison.OrdinalIgnoreCase)
+                    && ParametersMatch(candidate.GetParameters(), arguments));
+
+            if (method is null)
+            {
+                continue;
+            }
+
+            try
+            {
+                var result = method.Invoke(target, ConvertArguments(method.GetParameters(), arguments));
+                return ToMtRetCode(result);
+            }
+            catch
+            {
+                // Try the next candidate overload/name.
+            }
+        }
+
+        throw new InvalidOperationException($"None of the MT5 Manager API methods were found: {string.Join(", ", methodNames)}.");
+    }
+
+    private static bool ParametersMatch(ParameterInfo[] parameters, object[] arguments)
+    {
+        if (parameters.Length != arguments.Length)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < parameters.Length; i++)
+        {
+            if (arguments[i] is null)
+            {
+                continue;
+            }
+
+            var parameterType = Nullable.GetUnderlyingType(parameters[i].ParameterType) ?? parameters[i].ParameterType;
+            if (!parameterType.IsInstanceOfType(arguments[i]) && !(arguments[i] is IConvertible && typeof(IConvertible).IsAssignableFrom(parameterType)))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static object?[] ConvertArguments(ParameterInfo[] parameters, object[] arguments)
+    {
+        var converted = new object?[arguments.Length];
+        for (var i = 0; i < arguments.Length; i++)
+        {
+            if (arguments[i] is null)
+            {
+                converted[i] = null;
+                continue;
+            }
+
+            var parameterType = Nullable.GetUnderlyingType(parameters[i].ParameterType) ?? parameters[i].ParameterType;
+            converted[i] = parameterType.IsInstanceOfType(arguments[i])
+                ? arguments[i]
+                : Convert.ChangeType(arguments[i], parameterType, System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        return converted;
+    }
+
+    private static MTRetCode ToMtRetCode(object? result)
+    {
+        if (result is MTRetCode retCode)
+        {
+            return retCode;
+        }
+
+        return (MTRetCode)Convert.ToUInt32(result ?? MTRetCode.MT_RET_OK);
     }
 
     private static IEnumerable<string> ReadArrayItems(object array)
