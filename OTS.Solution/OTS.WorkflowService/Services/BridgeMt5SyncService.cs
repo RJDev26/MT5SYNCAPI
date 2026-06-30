@@ -29,13 +29,33 @@ namespace OTS.WorkflowService.Services
         public async Task ConnectAsync(CancellationToken ct)
         {
             _logger.LogInformation(
-                "Connecting MT5 manager {ManagerName} ({Login}) to {Server} through bridge {BridgeBaseUrl}",
-                _options.ManagerName,
-                _options.Login,
+                "Connecting MT5 manager account {AccountId} to {Server} through bridge {BridgeBaseUrl}",
+                _options.AccountId,
                 _options.Server,
                 _options.BridgeBaseUrl);
 
-            // The bridge owns the MT5 connection; just verify it is reachable.
+            var connect = await _http.PostAsJsonAsync(
+                "connect",
+                new ConnectRequest(_options.AccountId, _options.Password, _options.Server),
+                ct);
+            connect.EnsureSuccessStatusCode();
+
+            var connectResult = await connect.Content.ReadFromJsonAsync<ConnectResponse>(cancellationToken: ct);
+            if (connectResult is null)
+            {
+                throw new InvalidOperationException("MT5 bridge connect endpoint returned an empty response.");
+            }
+
+            if (!string.IsNullOrEmpty(connectResult.Error))
+            {
+                throw new InvalidOperationException("MT5 bridge connect failed: " + connectResult.Error);
+            }
+
+            if (!connectResult.Connected)
+            {
+                throw new InvalidOperationException("MT5 bridge did not report an active manager connection.");
+            }
+
             var health = await _http.GetFromJsonAsync<HealthDto>("health", ct);
             if (health is null)
             {
@@ -97,6 +117,14 @@ namespace OTS.WorkflowService.Services
         public Task DisconnectAsync(CancellationToken ct) => Task.CompletedTask;
 
         // Client-side mirrors of the bridge wire contracts.
+        private sealed record ConnectRequest(string account_id, string password, string server);
+
+        private sealed class ConnectResponse
+        {
+            public bool Connected { get; set; }
+            public string? Error { get; set; }
+        }
+
         private sealed class HealthDto
         {
             public string? Status { get; set; }
