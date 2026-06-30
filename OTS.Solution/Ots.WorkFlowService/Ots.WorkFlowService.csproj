@@ -12,8 +12,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="MetaQuotes.MT5CommonAPI64">
+      <HintPath>..\..\..\..\..\Users\RJ\Downloads\mng5net-trial-main\mng5net-trial-main\MetaQuotes.MT5CommonAPI64.dll</HintPath>
+    </Reference>
+    <Reference Include="MetaQuotes.MT5ManagerAPI64">
+      <HintPath>..\..\..\..\..\Users\RJ\Downloads\mng5net-trial-main\mng5net-trial-main\MetaQuotes.MT5ManagerAPI64.dll</HintPath>
+    </Reference>
     <Reference Include="mt5api">
       <HintPath>..\..\..\..\..\Users\RJ\Downloads\mt5-net-api-trial-main\mt5-net-api-trial-main\mt5api.dll</HintPath>
+    </Reference>
+    <Reference Include="MT5ManagerApiNet">
+      <HintPath>..\..\..\..\..\Users\RJ\Downloads\mng5net-trial-main\mng5net-trial-main\MT5ManagerApiNet.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>
