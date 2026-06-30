@@ -57,15 +57,18 @@ public sealed class MetaTraderManagerClient : IMetaTraderManagerClient, IDisposa
 
     private object CreateManager()
     {
-        foreach (var assemblyName in _options.AssemblyNames)
+        foreach (var assembly in LoadCandidateAssemblies())
         {
             try
             {
-                var assembly = Assembly.Load(assemblyName);
-                var factoryType = assembly.GetTypes().FirstOrDefault(t => t.Name.Contains("ManagerAPIFactory", StringComparison.OrdinalIgnoreCase));
+                var factoryType = assembly.GetTypes().FirstOrDefault(t =>
+                    t.Name.Contains("ManagerAPIFactory", StringComparison.OrdinalIgnoreCase) ||
+                    t.Name.Contains("MTManagerAPIFactory", StringComparison.OrdinalIgnoreCase));
                 if (factoryType is not null)
                 {
+                    InvokeBestEffort(factoryType, "Initialize", AppContext.BaseDirectory);
                     InvokeBestEffort(factoryType, "Initialize");
+
                     var manager = InvokeBestEffort(factoryType, "CreateManager") ?? InvokeBestEffort(factoryType, "Create");
                     if (manager is not null)
                     {
@@ -73,7 +76,11 @@ public sealed class MetaTraderManagerClient : IMetaTraderManagerClient, IDisposa
                     }
                 }
 
-                var managerType = assembly.GetTypes().FirstOrDefault(t => t.Name.Contains("ManagerAPI", StringComparison.OrdinalIgnoreCase) && !t.IsAbstract);
+                var managerType = assembly.GetTypes().FirstOrDefault(t =>
+                    (t.Name.Equals("CManagerApi", StringComparison.OrdinalIgnoreCase) ||
+                     t.Name.Contains("ManagerAPI", StringComparison.OrdinalIgnoreCase)) &&
+                    !t.IsAbstract &&
+                    t.GetConstructor(Type.EmptyTypes) is not null);
                 if (managerType is not null && Activator.CreateInstance(managerType) is { } instance)
                 {
                     return instance;
@@ -81,11 +88,62 @@ public sealed class MetaTraderManagerClient : IMetaTraderManagerClient, IDisposa
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "Unable to create MT5 manager from assembly {AssemblyName}", assemblyName);
+                _logger.LogDebug(ex, "Unable to create MT5 manager from assembly {AssemblyName}", assembly.FullName);
             }
         }
 
-        throw new InvalidOperationException("MT5 Manager API assembly was not found. Add the MetaTrader5 manager package/DLL to Ots.WorkFlowService or configure MetaTraderManager:AssemblyNames.");
+        throw new InvalidOperationException("MT5 Manager API assembly was not found. Copy MetaQuotes.MT5ManagerAPI(64).dll to the Ots.WorkFlowService output folder or configure MetaTraderManager:AssemblyPaths with the full DLL path.");
+    }
+
+    private IEnumerable<Assembly> LoadCandidateAssemblies()
+    {
+        foreach (var assemblyPath in ResolveAssemblyPaths())
+        {
+            if (!File.Exists(assemblyPath))
+            {
+                continue;
+            }
+
+            Assembly assembly;
+            try
+            {
+                assembly = Assembly.LoadFrom(assemblyPath);
+                _logger.LogInformation("Loaded MT5 Manager API assembly from {AssemblyPath}", assemblyPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Unable to load MT5 Manager API assembly from {AssemblyPath}", assemblyPath);
+                continue;
+            }
+
+            yield return assembly;
+        }
+
+        foreach (var assemblyName in _options.AssemblyNames)
+        {
+            Assembly assembly;
+            try
+            {
+                assembly = Assembly.Load(assemblyName);
+                _logger.LogInformation("Loaded MT5 Manager API assembly by name {AssemblyName}", assemblyName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Unable to load MT5 Manager API assembly by name {AssemblyName}", assemblyName);
+                continue;
+            }
+
+            yield return assembly;
+        }
+    }
+
+    private IEnumerable<string> ResolveAssemblyPaths()
+    {
+        foreach (var path in _options.AssemblyPaths.Where(path => !string.IsNullOrWhiteSpace(path)))
+        {
+            yield return Path.GetFullPath(path, AppContext.BaseDirectory);
+            yield return Path.GetFullPath(path, Directory.GetCurrentDirectory());
+        }
     }
 
     private IReadOnlyList<T> ReadCollection<T>(string[] methodNames, long fromUnix, long toUnix, Func<object, T> mapper)

@@ -25,7 +25,15 @@ public sealed class MetaTraderManagerOptions
     public string[] AssemblyNames { get; set; } =
     [
         "MetaQuotes.MT5ManagerAPI",
+        "MetaQuotes.MT5ManagerAPI(64)",
         "MT5ManagerAPI",
         "MetaTrader5.ManagerAPI"
+    ];
+
+    public string[] AssemblyPaths { get; set; } =
+    [
+        "MetaQuotes.MT5ManagerAPI(64).dll",
+        "MetaQuotes.MT5ManagerAPI.dll",
+        "MT5ManagerAPI.dll"
     ];
 }
