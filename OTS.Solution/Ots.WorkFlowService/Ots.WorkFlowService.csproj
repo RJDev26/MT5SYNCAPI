@@ -10,4 +10,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="mt5api">
+      <HintPath>..\..\..\..\..\Users\RJ\Downloads\mt5-net-api-trial-main\mt5-net-api-trial-main\mt5api.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 </Project>
