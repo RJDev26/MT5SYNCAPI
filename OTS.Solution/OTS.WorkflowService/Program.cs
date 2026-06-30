@@ -20,6 +20,9 @@ builder.Services.AddHttpClient<IMt5SyncService, BridgeMt5SyncService>(client =>
     client.Timeout = TimeSpan.FromSeconds(60);
 });
 
+// Register the optional bridge process starter before the polling worker so
+// the localhost bridge is available when Worker.ConnectAsync runs.
+builder.Services.AddHostedService<Mt5BridgeProcessHostedService>();
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();

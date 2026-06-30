@@ -31,14 +31,20 @@ namespace OTS.WorkflowService.Services
             // The bridge owns the MT5 connection; just verify it is reachable.
             var health = await _http.GetFromJsonAsync<HealthDto>("health", ct);
             _logger.LogInformation(
-                "MT5 bridge health: status={Status} connected={Connected}",
-                health?.Status, health?.Connected);
+                "MT5 bridge health: status={Status} connected={Connected} server={Server} login={Login} manager={ManagerName}",
+                health?.Status, health?.Connected, _options.Server, _options.Login, _options.ManagerName);
+
+            if (health is null || !health.Connected)
+            {
+                throw new InvalidOperationException(
+                    $"MT5 bridge at {_options.BridgeBaseUrl} is not connected to {_options.Server} as {_options.Login} ({_options.ManagerName}).");
+            }
         }
 
         public async Task<IReadOnlyList<Mt5Order>> GetOrdersAsync(
             DateTime fromUtc, DateTime toUtc, CancellationToken ct)
         {
-            var url = $"orders?logins={_options.Logins}";
+            var url = $"orders?logins={Uri.EscapeDataString(_options.Logins)}";
             var resp = await _http.GetFromJsonAsync<SyncResponse<OrderDto>>(url, ct);
             if (resp is null) return Array.Empty<Mt5Order>();
             if (!string.IsNullOrEmpty(resp.Error))
@@ -62,7 +68,7 @@ namespace OTS.WorkflowService.Services
         public async Task<IReadOnlyList<Mt5Deal>> GetDealsAsync(
             DateTime fromUtc, DateTime toUtc, CancellationToken ct)
         {
-            var url = $"deals?fromUtc={fromUtc:o}&toUtc={toUtc:o}&logins={_options.Logins}";
+            var url = $"deals?fromUtc={Uri.EscapeDataString(fromUtc.ToString("o"))}&toUtc={Uri.EscapeDataString(toUtc.ToString("o"))}&logins={Uri.EscapeDataString(_options.Logins)}";
             var resp = await _http.GetFromJsonAsync<SyncResponse<DealDto>>(url, ct);
             if (resp is null) return Array.Empty<Mt5Deal>();
             if (!string.IsNullOrEmpty(resp.Error))

@@ -8,11 +8,32 @@ namespace OTS.WorkflowService.Options
     {
         public const string SectionName = "Mt5Sync";
 
+        /// <summary>MT5 server address used by the bridge sidecar.</summary>
+        public string Server { get; set; } = "85.195.95.30";
+
+        /// <summary>Human-readable manager name for logging/auditing.</summary>
+        public string ManagerName { get; set; } = "A PATEL 5%";
+
+        /// <summary>MT5 manager login used by the bridge sidecar.</summary>
+        public ulong Login { get; set; } = 49600;
+
+        /// <summary>
+        /// MT5 manager password used by the bridge sidecar. Prefer overriding
+        /// this with the Mt5Sync__Password environment variable in production.
+        /// </summary>
+        public string Password { get; set; } = "RTP@12345";
+
         /// <summary>
         /// Base URL of the net48 OTS.Mt5Bridge process that owns the native
         /// MT5 Manager API connection.
         /// </summary>
         public string BridgeBaseUrl { get; set; } = "http://127.0.0.1:5099";
+
+        /// <summary>Start the bridge process automatically before polling.</summary>
+        public bool AutoStartBridge { get; set; }
+
+        /// <summary>Path to the built OTS.Mt5Bridge executable when auto-start is enabled.</summary>
+        public string BridgeExecutablePath { get; set; } = string.Empty;
 
         /// <summary>
         /// Comma-separated MT5 logins to sync. Leave "0" for every login the
