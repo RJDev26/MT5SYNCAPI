@@ -27,11 +27,8 @@ public sealed class Mt5ManagerClient : IDisposable
             return;
         }
 
-        var result = InitializeManagerApi();
-        if (result != MTRetCode.MT_RET_OK)
-        {
-            _logger.LogWarning("Initialize MT5 Manager API returned {Result}; continuing to CreateManager because some package/runtime variants are already initialized.", result);
-        }
+        var result = InitializeManagerApi(_options.NativeLibraryPath);
+        ThrowIfFailed(result, "Initialize MT5 Manager API. If this fails, set Mt5Manager:NativeLibraryPath to the folder or DLL path that contains MT5APIManager64.dll");
 
         _manager = SMTManagerAPIFactory.CreateManager(SMTManagerAPIFactory.ManagerAPIVersion, out result);
         ThrowIfFailed(result, "Create MT5 manager instance");
@@ -55,10 +52,15 @@ public sealed class Mt5ManagerClient : IDisposable
     }
 
 
-    private static MTRetCode InitializeManagerApi()
+    private static MTRetCode InitializeManagerApi(string? configuredNativeLibraryPath)
     {
         var nativeDllPath = GetNativeManagerDllPath();
         var candidates = new List<string?>();
+
+        if (!string.IsNullOrWhiteSpace(configuredNativeLibraryPath))
+        {
+            candidates.Add(configuredNativeLibraryPath);
+        }
 
         if (!string.IsNullOrWhiteSpace(nativeDllPath))
         {
