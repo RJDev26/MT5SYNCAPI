@@ -74,8 +74,38 @@ namespace OTS.WorkflowService
             var deals = await _syncService.GetDealsAsync(fromUtc, toUtc, cancellationToken);
 
             _logger.LogInformation(
-                "MT5 sync {FromUtc:o} -> {ToUtc:o}: {OrderCount} order(s), {DealCount} deal(s)",
+                "MT5 sync {FromUtc:o} -> {ToUtc:o}: {OrderCount} live order(s), {DealCount} live deal(s)",
                 fromUtc, toUtc, orders.Count, deals.Count);
+
+            foreach (var order in orders)
+            {
+                _logger.LogInformation(
+                    "Live MT5 order: order={Order} login={Login} symbol={Symbol} type={Type} volumeCurrent={VolumeCurrent} priceOpen={PriceOpen} priceCurrent={PriceCurrent} setup={TimeSetup:o} comment={Comment}",
+                    order.Order,
+                    order.Login,
+                    order.Symbol,
+                    order.Type,
+                    order.VolumeCurrent,
+                    order.PriceOpen,
+                    order.PriceCurrent,
+                    order.TimeSetup,
+                    order.Comment);
+            }
+
+            foreach (var deal in deals)
+            {
+                _logger.LogInformation(
+                    "Live MT5 deal: deal={Deal} order={Order} login={Login} symbol={Symbol} entry={Entry} volume={Volume} price={Price} profit={Profit} time={Time:o}",
+                    deal.Deal,
+                    deal.Order,
+                    deal.Login,
+                    deal.Symbol,
+                    deal.Entry,
+                    deal.Volume,
+                    deal.Price,
+                    deal.Profit,
+                    deal.Time);
+            }
 
             // TODO: persist orders/deals (DB, queue, etc.) here.
         }
