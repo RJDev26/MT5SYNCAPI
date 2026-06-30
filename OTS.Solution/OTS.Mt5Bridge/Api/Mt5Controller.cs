@@ -30,6 +30,12 @@ namespace OTS.Mt5Bridge.Api
                 if (request == null)
                     return BadRequest("Missing MT5 manager connection details.");
 
+                if (string.IsNullOrWhiteSpace(request.server))
+                    return BadRequest("server is required.");
+
+                if (string.IsNullOrWhiteSpace(request.password))
+                    return BadRequest("password is required.");
+
                 if (!ulong.TryParse(request.account_id, out var login))
                     return BadRequest("account_id must be a numeric MT5 manager login.");
 

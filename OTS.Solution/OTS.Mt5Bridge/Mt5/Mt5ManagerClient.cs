@@ -56,18 +56,29 @@ namespace OTS.Mt5Bridge.Mt5
             if (res != MTRetCode.MT_RET_OK || _manager == null)
                 throw new InvalidOperationException("CreateManager: " + res);
 
-            res = _manager.Connect(
-                _config.Server,
-                _config.Login,
-                _config.Password,
-                null,
-                CIMTManagerAPI.EnPumpModes.PUMP_MODE_FULL,
-                _config.ConnectTimeoutMs);
+            var errors = new List<string>();
+            foreach (var server in ServerCandidates(_config.Server))
+            {
+                res = _manager.Connect(
+                    server,
+                    _config.Login,
+                    _config.Password,
+                    null,
+                    CIMTManagerAPI.EnPumpModes.PUMP_MODE_FULL,
+                    _config.ConnectTimeoutMs);
 
-            if (res != MTRetCode.MT_RET_OK)
-                throw new InvalidOperationException("Connect: " + res);
+                if (res == MTRetCode.MT_RET_OK)
+                {
+                    _config.Server = server;
+                    _connected = true;
+                    return;
+                }
 
-            _connected = true;
+                errors.Add(server + " => " + res);
+                _manager.Disconnect();
+            }
+
+            throw new InvalidOperationException("Connect failed for configured MT5 server(s): " + string.Join(", ", errors));
         }
 
         public List<OrderDto> GetOrders(IEnumerable<ulong> logins)
@@ -140,6 +151,33 @@ namespace OTS.Mt5Bridge.Mt5
                 finally { deals.Release(); }
                 return result;
             }
+        }
+
+        private static IEnumerable<string> ServerCandidates(string server)
+        {
+            if (string.IsNullOrWhiteSpace(server))
+                throw new InvalidOperationException("MT5 server is required.");
+
+            var trimmed = server.Trim();
+            yield return trimmed;
+
+            // The MT5 Manager API normally expects host:port. When users provide
+            // only an IP/host, retry the standard MT5 server port as a fallback.
+            if (!HasExplicitPort(trimmed))
+                yield return trimmed + ":443";
+        }
+
+        private static bool HasExplicitPort(string server)
+        {
+            var lastColon = server.LastIndexOf(':');
+            if (lastColon < 0 || lastColon == server.Length - 1) return false;
+
+            for (var i = lastColon + 1; i < server.Length; i++)
+            {
+                if (!char.IsDigit(server[i])) return false;
+            }
+
+            return true;
         }
 
         private static ulong[] ToArray(IEnumerable<ulong> logins)
