@@ -4,7 +4,10 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <PlatformTarget>x64</PlatformTarget>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <PackageReference Include="MetaTrader5.Net.API" Version="1.0.2" />
+
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <UserSecretsId>dotnet-OTS.WorkflowService-038de91f-eea7-42cc-bca5-aec7a6daa628</UserSecretsId>
   </PropertyGroup>
