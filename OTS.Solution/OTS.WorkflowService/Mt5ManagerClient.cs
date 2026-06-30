@@ -58,16 +58,34 @@ public sealed class Mt5ManagerClient : IDisposable
     private static MTRetCode InitializeManagerApi()
     {
         var nativeDllPath = GetNativeManagerDllPath();
+        var candidates = new List<string?>();
+
         if (!string.IsNullOrWhiteSpace(nativeDllPath))
         {
-            var pathResult = SMTManagerAPIFactory.Initialize(nativeDllPath);
-            if (pathResult == MTRetCode.MT_RET_OK)
+            candidates.Add(nativeDllPath);
+
+            var nativeDirectory = Path.GetDirectoryName(nativeDllPath);
+            if (!string.IsNullOrWhiteSpace(nativeDirectory))
             {
-                return pathResult;
+                candidates.Add(nativeDirectory);
             }
         }
 
-        return SMTManagerAPIFactory.Initialize(null);
+        candidates.Add(AppContext.BaseDirectory);
+        candidates.Add(string.Empty);
+        candidates.Add(null);
+
+        MTRetCode lastResult = MTRetCode.MT_RET_ERROR;
+        foreach (var candidate in candidates.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            lastResult = SMTManagerAPIFactory.Initialize(candidate);
+            if (lastResult == MTRetCode.MT_RET_OK)
+            {
+                return lastResult;
+            }
+        }
+
+        return lastResult;
     }
 
     private static string? GetNativeManagerDllPath()
