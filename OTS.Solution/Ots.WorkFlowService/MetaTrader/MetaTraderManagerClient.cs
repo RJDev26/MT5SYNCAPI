@@ -92,7 +92,7 @@ public sealed class MetaTraderManagerClient : IMetaTraderManagerClient, IDisposa
             }
         }
 
-        throw new InvalidOperationException("MT5 Manager API assembly was not found. Copy MetaQuotes.MT5ManagerAPI(64).dll to the Ots.WorkFlowService output folder or configure MetaTraderManager:AssemblyPaths with the full DLL path.");
+        throw new InvalidOperationException("MT5 Manager API assembly was not found. Install/restore the MetaQuotes.MT5ManagerAPI64-net2.0 package or copy MetaQuotes.MT5ManagerAPI(64).dll to the Ots.WorkFlowService output folder, then configure MetaTraderManager:AssemblyPaths if the DLL lives somewhere else.");
     }
 
     private IEnumerable<Assembly> LoadCandidateAssemblies()
