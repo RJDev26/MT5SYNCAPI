@@ -12,6 +12,7 @@
       The native MT5 Manager API (net2.0 mixed-mode, x64) is NOT referenced here.
       It lives in the net48 OTS.Mt5Bridge sidecar; this worker calls it over HTTP.
     -->
+    <PackageReference Include="MetaTrader5.Net.API" Version="1.0.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
   </ItemGroup>
