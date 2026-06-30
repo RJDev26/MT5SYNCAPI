@@ -133,7 +133,47 @@ public sealed class MetaTraderManagerClient : IMetaTraderManagerClient
 
     private void Login(object manager)
     {
-        Invoke(manager, "Login", _options.Server, _options.ManagerLogin, _options.Password);
+        if (!TryInvoke(
+                manager,
+                "Login",
+                out var loginResult,
+                _options.Server,
+                _options.ManagerLogin,
+                _options.Password,
+                _options.ConnectionTimeoutMilliseconds)
+            && !TryInvoke(
+                manager,
+                "Login",
+                out loginResult,
+                _options.Server,
+                _options.ManagerLogin,
+                _options.Password)
+            && !TryInvoke(
+                manager,
+                "Connect",
+                out loginResult,
+                _options.Server,
+                _options.ManagerLogin,
+                _options.Password,
+                _options.ConnectionTimeoutMilliseconds)
+            && !TryInvoke(
+                manager,
+                "Connect",
+                out loginResult,
+                _options.Server,
+                _options.ManagerLogin,
+                _options.Password,
+                0,
+                _options.ConnectionTimeoutMilliseconds))
+        {
+            throw CreateMissingMethodException(manager, "Login", "Connect");
+        }
+
+        if (loginResult is bool isConnected && !isConnected)
+        {
+            throw new InvalidOperationException(
+                $"MT5 manager login returned false for manager {_options.ManagerLogin} on {_options.Server}.");
+        }
 
         _logger.LogInformation(
             "Connected to MT5 manager {ManagerName} ({ManagerLogin}) on {Server}.",
@@ -144,18 +184,60 @@ public sealed class MetaTraderManagerClient : IMetaTraderManagerClient
 
     private static object? Invoke(object target, string methodName, params object[] arguments)
     {
-        var method = target.GetType()
-            .GetMethods(BindingFlags.Instance | BindingFlags.Public)
-            .Where(candidate => string.Equals(candidate.Name, methodName, StringComparison.Ordinal))
-            .FirstOrDefault(candidate => ParametersMatch(candidate.GetParameters(), arguments));
+        if (!TryInvoke(target, methodName, out var result, arguments))
+        {
+            throw CreateMissingMethodException(target, methodName);
+        }
 
+        return result;
+    }
+
+    private static bool TryInvoke(object target, string methodName, out object? result, params object[] arguments)
+    {
+        var method = FindMethod(target, methodName, arguments);
         if (method is null)
         {
-            throw new MissingMethodException(target.GetType().FullName, methodName);
+            result = null;
+            return false;
         }
 
         var convertedArguments = ConvertArguments(method.GetParameters(), arguments);
-        return method.Invoke(target, convertedArguments);
+        result = method.Invoke(target, convertedArguments);
+        return true;
+    }
+
+    private static MethodInfo? FindMethod(object target, string methodName, object[] arguments)
+    {
+        return target.GetType()
+            .GetMethods(BindingFlags.Instance | BindingFlags.Public)
+            .Where(candidate => string.Equals(candidate.Name, methodName, StringComparison.Ordinal))
+            .FirstOrDefault(candidate => ParametersMatch(candidate.GetParameters(), arguments));
+    }
+
+    private static MissingMethodException CreateMissingMethodException(object target, params string[] methodNames)
+    {
+        var methodList = string.Join(" or ", methodNames);
+        var availableMethods = string.Join(
+            "; ",
+            target.GetType()
+                .GetMethods(BindingFlags.Instance | BindingFlags.Public)
+                .Where(method => methodNames.Contains(method.Name, StringComparer.Ordinal))
+                .Select(FormatMethodSignature));
+
+        var message = string.IsNullOrWhiteSpace(availableMethods)
+            ? $"Method {methodList} was not found on {target.GetType().FullName}."
+            : $"No compatible {methodList} overload was found on {target.GetType().FullName}. Available overloads: {availableMethods}.";
+
+        return new MissingMethodException(message);
+    }
+
+    private static string FormatMethodSignature(MethodInfo method)
+    {
+        var parameters = string.Join(
+            ", ",
+            method.GetParameters().Select(parameter => $"{parameter.ParameterType.Name} {parameter.Name}"));
+
+        return $"{method.Name}({parameters})";
     }
 
     private static bool ParametersMatch(ParameterInfo[] parameters, object[] arguments)
