@@ -27,8 +27,11 @@ public sealed class Mt5ManagerClient : IDisposable
             return;
         }
 
-        var result = SMTManagerAPIFactory.Initialize(null);
-        ThrowIfFailed(result, "Initialize MT5 Manager API");
+        var result = InitializeManagerApi();
+        if (result != MTRetCode.MT_RET_OK)
+        {
+            _logger.LogWarning("Initialize MT5 Manager API returned {Result}; continuing to CreateManager because some package/runtime variants are already initialized.", result);
+        }
 
         _manager = SMTManagerAPIFactory.CreateManager(SMTManagerAPIFactory.ManagerAPIVersion, out result);
         ThrowIfFailed(result, "Create MT5 manager instance");
@@ -49,6 +52,38 @@ public sealed class Mt5ManagerClient : IDisposable
 
         _connected = true;
         _logger.LogInformation("Connected to MT5 Manager server {Server} as manager login {Login}.", _options.Server, _options.Login);
+    }
+
+
+    private static MTRetCode InitializeManagerApi()
+    {
+        var nativeDllPath = GetNativeManagerDllPath();
+        if (!string.IsNullOrWhiteSpace(nativeDllPath))
+        {
+            var pathResult = SMTManagerAPIFactory.Initialize(nativeDllPath);
+            if (pathResult == MTRetCode.MT_RET_OK)
+            {
+                return pathResult;
+            }
+        }
+
+        return SMTManagerAPIFactory.Initialize(null);
+    }
+
+    private static string? GetNativeManagerDllPath()
+    {
+        var baseDirectory = AppContext.BaseDirectory;
+        foreach (var fileName in new[] { "MT5APIManager64.dll", "MT5APIManager.dll" })
+        {
+            var path = Path.Combine(baseDirectory, fileName);
+            if (File.Exists(path))
+            {
+                return path;
+            }
+        }
+
+        return Directory.EnumerateFiles(baseDirectory, "MT5APIManager*.dll", SearchOption.AllDirectories)
+            .FirstOrDefault();
     }
 
     public Mt5Snapshot GetTradeAndOrderSnapshot()
