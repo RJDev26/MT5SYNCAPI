@@ -17,7 +17,7 @@ namespace OTS.Mt5Bridge.Mt5
     public sealed class Mt5ManagerClient : IDisposable
     {
         private readonly object _gate = new object();
-        private readonly Mt5BridgeConfig _config;
+        private Mt5BridgeConfig _config;
         private CIMTManagerAPI? _manager;
         private bool _connected;
 
@@ -25,41 +25,56 @@ namespace OTS.Mt5Bridge.Mt5
 
         public bool IsConnected => _connected;
 
+        public void Connect(Mt5BridgeConfig config)
+        {
+            lock (_gate)
+            {
+                DisconnectCore();
+                _config = config;
+                EnsureConnectedCore();
+            }
+        }
+
         public void EnsureConnected()
         {
             lock (_gate)
             {
-                if (_connected && _manager != null) return;
-
-                var res = SMTManagerAPIFactory.Initialize(null);
-                if (res != MTRetCode.MT_RET_OK)
-                    throw new InvalidOperationException("Factory.Initialize: " + res);
-
-                _manager = SMTManagerAPIFactory.CreateManager(
-                    SMTManagerAPIFactory.ManagerAPIVersion, out res);
-                if (res != MTRetCode.MT_RET_OK || _manager == null)
-                    throw new InvalidOperationException("CreateManager: " + res);
-
-                res = _manager.Connect(
-                    _config.Server,
-                    _config.Login,
-                    _config.Password,
-                    null,
-                    CIMTManagerAPI.EnPumpModes.PUMP_MODE_FULL,
-                    _config.ConnectTimeoutMs);
-
-                if (res != MTRetCode.MT_RET_OK)
-                    throw new InvalidOperationException("Connect: " + res);
-
-                _connected = true;
+                EnsureConnectedCore();
             }
+        }
+
+        private void EnsureConnectedCore()
+        {
+            if (_connected && _manager != null) return;
+
+            var res = SMTManagerAPIFactory.Initialize(null);
+            if (res != MTRetCode.MT_RET_OK)
+                throw new InvalidOperationException("Factory.Initialize: " + res);
+
+            _manager = SMTManagerAPIFactory.CreateManager(
+                SMTManagerAPIFactory.ManagerAPIVersion, out res);
+            if (res != MTRetCode.MT_RET_OK || _manager == null)
+                throw new InvalidOperationException("CreateManager: " + res);
+
+            res = _manager.Connect(
+                _config.Server,
+                _config.Login,
+                _config.Password,
+                null,
+                CIMTManagerAPI.EnPumpModes.PUMP_MODE_FULL,
+                _config.ConnectTimeoutMs);
+
+            if (res != MTRetCode.MT_RET_OK)
+                throw new InvalidOperationException("Connect: " + res);
+
+            _connected = true;
         }
 
         public List<OrderDto> GetOrders(IEnumerable<ulong> logins)
         {
             lock (_gate)
             {
-                EnsureConnected();
+                EnsureConnectedCore();
                 var result = new List<OrderDto>();
                 var orders = _manager!.OrderCreateArray();
                 try
@@ -95,7 +110,7 @@ namespace OTS.Mt5Bridge.Mt5
         {
             lock (_gate)
             {
-                EnsureConnected();
+                EnsureConnectedCore();
                 var result = new List<DealDto>();
                 var deals = _manager!.DealCreateArray();
                 try
@@ -145,17 +160,22 @@ namespace OTS.Mt5Bridge.Mt5
         {
             lock (_gate)
             {
-                try
-                {
-                    _manager?.Disconnect();
-                    _manager?.Release();
-                }
-                finally
-                {
-                    SMTManagerAPIFactory.Shutdown();
-                    _connected = false;
-                    _manager = null;
-                }
+                DisconnectCore();
+            }
+        }
+
+        private void DisconnectCore()
+        {
+            try
+            {
+                _manager?.Disconnect();
+                _manager?.Release();
+            }
+            finally
+            {
+                SMTManagerAPIFactory.Shutdown();
+                _connected = false;
+                _manager = null;
             }
         }
     }

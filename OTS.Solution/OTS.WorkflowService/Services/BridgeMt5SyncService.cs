@@ -28,17 +28,49 @@ namespace OTS.WorkflowService.Services
 
         public async Task ConnectAsync(CancellationToken ct)
         {
-            // The bridge owns the MT5 connection; just verify it is reachable.
+            _logger.LogInformation(
+                "Connecting MT5 manager account {AccountId} to {Server} through bridge {BridgeBaseUrl}",
+                _options.AccountId,
+                _options.Server,
+                _options.BridgeBaseUrl);
+
+            var connect = await _http.PostAsJsonAsync(
+                "connect",
+                new ConnectRequest(_options.AccountId, _options.Password, _options.Server),
+                ct);
+            connect.EnsureSuccessStatusCode();
+
+            var connectResult = await connect.Content.ReadFromJsonAsync<ConnectResponse>(cancellationToken: ct);
+            if (connectResult is null)
+            {
+                throw new InvalidOperationException("MT5 bridge connect endpoint returned an empty response.");
+            }
+
+            if (!string.IsNullOrEmpty(connectResult.Error))
+            {
+                throw new InvalidOperationException("MT5 bridge connect failed: " + connectResult.Error);
+            }
+
+            if (!connectResult.Connected)
+            {
+                throw new InvalidOperationException("MT5 bridge did not report an active manager connection.");
+            }
+
             var health = await _http.GetFromJsonAsync<HealthDto>("health", ct);
+            if (health is null)
+            {
+                throw new InvalidOperationException("MT5 bridge health endpoint returned an empty response.");
+            }
+
             _logger.LogInformation(
                 "MT5 bridge health: status={Status} connected={Connected}",
-                health?.Status, health?.Connected);
+                health.Status, health.Connected);
         }
 
         public async Task<IReadOnlyList<Mt5Order>> GetOrdersAsync(
             DateTime fromUtc, DateTime toUtc, CancellationToken ct)
         {
-            var url = $"orders?logins={_options.Logins}";
+            var url = $"orders?logins={Uri.EscapeDataString(_options.Logins)}";
             var resp = await _http.GetFromJsonAsync<SyncResponse<OrderDto>>(url, ct);
             if (resp is null) return Array.Empty<Mt5Order>();
             if (!string.IsNullOrEmpty(resp.Error))
@@ -62,7 +94,7 @@ namespace OTS.WorkflowService.Services
         public async Task<IReadOnlyList<Mt5Deal>> GetDealsAsync(
             DateTime fromUtc, DateTime toUtc, CancellationToken ct)
         {
-            var url = $"deals?fromUtc={fromUtc:o}&toUtc={toUtc:o}&logins={_options.Logins}";
+            var url = $"deals?fromUtc={Uri.EscapeDataString(fromUtc.ToString("o"))}&toUtc={Uri.EscapeDataString(toUtc.ToString("o"))}&logins={Uri.EscapeDataString(_options.Logins)}";
             var resp = await _http.GetFromJsonAsync<SyncResponse<DealDto>>(url, ct);
             if (resp is null) return Array.Empty<Mt5Deal>();
             if (!string.IsNullOrEmpty(resp.Error))
@@ -85,6 +117,14 @@ namespace OTS.WorkflowService.Services
         public Task DisconnectAsync(CancellationToken ct) => Task.CompletedTask;
 
         // Client-side mirrors of the bridge wire contracts.
+        private sealed record ConnectRequest(string account_id, string password, string server);
+
+        private sealed class ConnectResponse
+        {
+            public bool Connected { get; set; }
+            public string? Error { get; set; }
+        }
+
         private sealed class HealthDto
         {
             public string? Status { get; set; }

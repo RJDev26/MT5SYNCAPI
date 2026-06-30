@@ -22,6 +22,32 @@ namespace OTS.Mt5Bridge.Api
         public IHttpActionResult Health() =>
             Ok(new { status = "ok", connected = Client.IsConnected });
 
+        [HttpPost, Route("connect")]
+        public IHttpActionResult Connect([FromBody] ConnectRequest request)
+        {
+            try
+            {
+                if (request == null)
+                    return BadRequest("Missing MT5 manager connection details.");
+
+                if (!ulong.TryParse(request.account_id, out var login))
+                    return BadRequest("account_id must be a numeric MT5 manager login.");
+
+                Client.Connect(new Mt5BridgeConfig
+                {
+                    Server = request.server,
+                    Login = login,
+                    Password = request.password
+                });
+
+                return Ok(new { connected = Client.IsConnected });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new { connected = Client.IsConnected, error = ex.Message });
+            }
+        }
+
         [HttpGet, Route("orders")]
         public IHttpActionResult GetOrders(string? logins = null)
         {
@@ -62,6 +88,13 @@ namespace OTS.Mt5Bridge.Api
             foreach (var part in logins.Split(','))
                 if (ulong.TryParse(part.Trim(), out var v)) result.Add(v);
             return result;
+        }
+
+        public sealed class ConnectRequest
+        {
+            public string account_id { get; set; } = string.Empty;
+            public string password { get; set; } = string.Empty;
+            public string server { get; set; } = string.Empty;
         }
     }
 }
