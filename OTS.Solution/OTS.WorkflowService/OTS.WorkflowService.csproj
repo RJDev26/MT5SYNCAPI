@@ -10,15 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MetaQuotes.MT5ManagerAPI64-net2.0" Version="1755.0.0" />
     <PackageReference Include="MetaTrader5.Net.API" Version="1.0.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
   </ItemGroup>
 
-  <Target Name="CopyMt5NativeRuntime" AfterTargets="Build">
-    <ItemGroup>
-      <Mt5NativeRuntime Include="$(NuGetPackageRoot)metaquotes.mt5managerapi64-net2.0\1755.0.0\**\MT5APIManager*.dll" />
-    </ItemGroup>
-    <Copy SourceFiles="@(Mt5NativeRuntime)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="@(Mt5NativeRuntime) != ''" />
-  </Target>
 </Project>
