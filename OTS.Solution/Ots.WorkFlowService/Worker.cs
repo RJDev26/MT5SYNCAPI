@@ -30,6 +30,11 @@ namespace Ots.WorkFlowService
                 return;
             }
 
+            if (!await CheckManagerLoginAsync(stoppingToken))
+            {
+                return;
+            }
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
@@ -55,6 +60,17 @@ namespace Ots.WorkFlowService
 
                 await Task.Delay(_options.PollInterval, stoppingToken);
             }
+        }
+
+        private async Task<bool> CheckManagerLoginAsync(CancellationToken stoppingToken)
+        {
+            var isLoginSuccessful = await _metaTraderManagerClient.CheckLoginAsync(stoppingToken);
+            if (!isLoginSuccessful)
+            {
+                _logger.LogError("MT5 synchronization stopped because manager login failed.");
+            }
+
+            return isLoginSuccessful;
         }
 
         private void LogSnapshot(MetaTraderSnapshot snapshot)

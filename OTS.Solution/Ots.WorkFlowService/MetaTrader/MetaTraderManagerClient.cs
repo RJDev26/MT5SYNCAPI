@@ -25,6 +25,35 @@ public sealed class MetaTraderManagerClient : IMetaTraderManagerClient
         _logger = logger;
     }
 
+    public async Task<bool> CheckLoginAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return await Task.Run(() =>
+        {
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                using var manager = CreateManager();
+                Login(manager.Instance);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Unable to connect to MT5 manager {ManagerName} ({ManagerLogin}) on {Server}.",
+                    _options.ManagerName,
+                    _options.ManagerLogin,
+                    _options.Server);
+
+                return false;
+            }
+        }, cancellationToken);
+    }
+
     public async Task<MetaTraderSnapshot> GetDealsAndOrdersAsync(
         DateTime fromUtc,
         DateTime toUtc,
