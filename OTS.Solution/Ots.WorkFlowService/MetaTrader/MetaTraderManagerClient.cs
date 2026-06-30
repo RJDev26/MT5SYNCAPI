@@ -92,7 +92,7 @@ public sealed class MetaTraderManagerClient : IMetaTraderManagerClient, IDisposa
             }
         }
 
-        throw new InvalidOperationException("MT5 Manager API assembly was not found. Install/restore the MetaQuotes.MT5ManagerAPI64-net2.0 package or copy MetaQuotes.MT5ManagerAPI(64).dll to the Ots.WorkFlowService output folder, then configure MetaTraderManager:AssemblyPaths if the DLL lives somewhere else.");
+        throw new InvalidOperationException("MT5 Manager API assembly was not found. Install/restore the MetaQuotes.MT5ManagerAPI64-net2.0 package or copy MetaQuotes.MT5ManagerAPI64.dll (or MetaQuotes.MT5ManagerAPI(64).dll) to the Ots.WorkFlowService output folder, then configure MetaTraderManager:AssemblyPaths if the DLL lives somewhere else.");
     }
 
     private IEnumerable<Assembly> LoadCandidateAssemblies()
@@ -139,10 +139,36 @@ public sealed class MetaTraderManagerClient : IMetaTraderManagerClient, IDisposa
 
     private IEnumerable<string> ResolveAssemblyPaths()
     {
+        var returned = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var path in _options.AssemblyPaths.Where(path => !string.IsNullOrWhiteSpace(path)))
         {
-            yield return Path.GetFullPath(path, AppContext.BaseDirectory);
-            yield return Path.GetFullPath(path, Directory.GetCurrentDirectory());
+            foreach (var baseDirectory in new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() })
+            {
+                var fullPath = Path.GetFullPath(path, baseDirectory);
+                if (returned.Add(fullPath))
+                {
+                    yield return fullPath;
+                }
+            }
+        }
+
+        foreach (var baseDirectory in new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() }.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (!Directory.Exists(baseDirectory))
+            {
+                continue;
+            }
+
+            foreach (var dll in Directory.EnumerateFiles(baseDirectory, "*.dll", SearchOption.AllDirectories)
+                         .Where(path => Path.GetFileName(path).Contains("MT5ManagerAPI", StringComparison.OrdinalIgnoreCase) ||
+                                        Path.GetFileName(path).Equals("ManagerAPI.NET.dll", StringComparison.OrdinalIgnoreCase)))
+            {
+                if (returned.Add(dll))
+                {
+                    yield return dll;
+                }
+            }
         }
     }
 
